@@ -4547,7 +4547,6 @@ int main(void)
         exit_sys("fatal error");
 
     for (;;) {
-
         printf("CSD:%s$ ", g_cwd);
         fflush(stdout);
 
@@ -16961,8 +16960,8 @@ void exit_sys(const char *msg)
 ---------------------------------------------------------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------------------------------------------------------
-    exec fonksiyonlarının iki tane e'li biçimleri vardır: execle ve execve. Buradaki "e" harfi "environment" yani "çevre 
-    değişkenleri" anlamında isme eklenmiştir.
+    exec fonksiyonlarının iki e'li biçimi vardır: execle ve execve. Buradaki "e" harfi "environment" yani "çevre değişkenleri" 
+    anlamında isme eklenmiştir.
 
     Anımsanacağı gibi çevre değişkenleri tipik olarak prosesin bellek alanında bulunduruluyordu ve fork işlemi sırasında üst 
     prosesin bellek alanının alt prosese kopyalanmasıyla alt prosese geçiriliyordu. Ancak exec işlemleri prosesin bellek alanını 
@@ -16970,7 +16969,7 @@ void exit_sys(const char *msg)
     prosesin bellek alanı boşaltılıp yeni program için prosesin bellek alanı yeniden oluşturulurken çevre değişkenleri de sıfırdan 
     oluşturulabilmektedir. Bunu exec fonksiyonlarının e'li versiyonları yapmaktadır. exec fonksiyonlarının e'siz versiyonları o andaki 
     prosesin çevre değişkenlerinin aynısını exec yapılan programın bellek alanına taşımaktadır. Yani biz exec fonksiyonlarının e'siz 
-    versiyonlarını kullandığımızda exec yapmadan önceki çevre değişkenleriyle exec yapıldıktan sonraki programın çevre değişkenleri 
+    versiyonlarını kullandığımızda exec yapmadan önceki çevre değişkenleriyle exec yaptıktan sonraki programın çevre değişkenleri 
     aynı olacaktır.
 
     execle ve execve fonksiyonlarının prototipleri şöyledir:
@@ -16983,11 +16982,11 @@ void exit_sys(const char *msg)
     execle fonksiyonunun birinci parametresi yine çalıştırılacak dosyanın yol ifadesini almaktadır. Diğer parametreler programa 
     geçirilecek komut satırı argümanlarını belirtir. Bu argüman listesinin sonu yine NULL adresle bitirilmelidir. Bu NULL adresten 
     sonra son parametre char türden bir gösterici dizisi olmalıdır. Bu gösterici dizisi çevre değişkenlerini "anahtar=değer" 
-    biçiminde tutan yazıların başlangıç adreslerinden oluşmalıdır (yani environ global değişkeninde olduğu gibi). Bu fonksiyonlardaki 
+    biçiminde tutan yazıların adreslerinden oluşmalıdır (yani environ global değişkeninde olduğu gibi). Bu fonksiyonlardaki 
     çevre değişkenleri için oluşturulan gösterici dizilerinin sonunda NULL adres bulunmalıdır.
 
-    execve fonksiyonu da benzerdir. Bu fonksiyon da önce çalıştırılacak programın yol ifadesini alır. Sonra komut satırı argümanlarını 
-    bir gösterici dizisi olarak sonra da çevre değişkenlerini bir gösterici dizisi olarak almaktadır.
+    execve fonksiyonu da benzerdir. Bu fonksiyon da önce çalıştırılacak programın yol ifadesini, sonra komut satırı argümanlarını 
+    bir gösterici dizisi biçiminde sonra da çevre değişkenlerini bir gösterici dizisi biçiminde almaktadır.
 
     Aşağıdaki örnekte execve fonksiyonunun kullanımına bir örnek verilmiştir. Örnekte "sample" programı aynı dizindeki "other" 
     programını çalıştırmaktadır. execle işlemi şöyle yapılmıştır:
@@ -17080,10 +17079,6 @@ int main(int argc, char *argv[])
 }
 
 /*---------------------------------------------------------------------------------------------------------------------------
-    Daha önceden de belirtildiği gibi UNIX türevi sistemlerde yalnızca execve fonksiyonu sistem fonksiyonu olarak işletim 
-    sistemi içerisinde bulunmaktadır. Aslında execl, execlp, execv, execvp, execle fonksiyonları, execve fonksiyonunu 
-    çağıran birer kütüphane fonksiyonu biçiminde bulundurulmaktadır. Yani burada "taban (base)" fonksiyon execve fonksiyonudur.
-
     Aşağıda execv fonksiyonunun execve kullanılarak basit biçimde yazımına örnek verilmiştir. Bu örnek yukarıdaki örneğin 
     aynısıdır. Yalnızca execle yerine execve fonksiyonu kullanılmıştır.
 ---------------------------------------------------------------------------------------------------------------------------*/
@@ -17151,6 +17146,10 @@ int main(int argc, char *argv[])
 ---------------------------------------------------------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------------------------------------------------------
+    Daha önceden de belirtildiği gibi UNIX türevi sistemlerde genellikle yalnızca execve fonksiyonu sistem fonksiyonu olarak 
+    işletim sistemi içerisinde bulunmaktadır. Aslında execl, execlp, execv, execvp, execle fonksiyonları, execve fonksiyonunu 
+    çağıran birer kütüphane fonksiyonu biçiminde bulundurulmaktadır. Yani burada "taban (base)" fonksiyon execve fonksiyonudur.
+
     Aşağıdaki örnekte de execl fonksiyonunun execve kullanılarak nasıl yazıldığı hakkında bir fikir verilmiştir. 
     Burada komut satırı argümanlarının sayısı MAX_ARG ile sınırlandırılmıştır.
 
@@ -17217,18 +17216,18 @@ void exit_sys(const char *msg)
 }
 
 /*---------------------------------------------------------------------------------------------------------------------------
-    fexecve isimli POSIX fonksiyonu execve fonksiyonu gibidir. Ancak bunun tek farkı yol ifadesi yerine dosya betimleyicisini 
-    alarak çalışmasıdır. Yani biz çalıştırmak istediğimiz program dosyasını dosyayı zaten open fonksiyonu ile açmışsak bu durumda 
-    doğrudan fexecve fonksiyonunu kullanabiliriz. Fonksiyonun prototipi şöyledir:
+    fexecve isimli POSIX fonksiyonu execve fonksiyonu gibidir. Ancak bunun tek farkı parametre olarak dosyanın yol ifadesini 
+    değil dosya betimleyicisini almasıdır. Yani biz çalıştırmak istediğimiz program dosyasını dosyayı zaten open fonksiyonu 
+    ile açmışsak bu durumda doğrudan fexecve fonksiyonunu kullanabiliriz. Fonksiyonun prototipi şöyledir:
 
     #include <unistd.h>
 
     int fexecve(int fd, char *const argv[], char *const envp[]);
 
     Fonksiyonun birinci parametresi çalıştırılacak dosyanın dosya betimleyicisini belirtmektedir. Diğer parametreler execve fonksiyonu 
-    ile tamamen aynıdır. Bu fonksiyonun birinci parametresinde belirtilen betimleyiciye ilişkin dosya hangi modda açılmış olmalıdır?
+    ile tamamen aynıdır. Peki bu fonksiyonun birinci parametresinde belirtilen betimleyiciye ilişkin dosya hangi modda açılmış olmalıdır?
     POSIX standartlarında dosyanın O_EXEC bayrağı ile ya da O_RDONLY bayrağı ile açılması gerektiği belirtilmiştir. O_EXEC bayrağında 
-    zaten açış sırasında dosyanın "x" hakkına sahip olup olmadığına bakılmaktadır. O_RDONLY bayrağında açış sırasında "x" hakkına 
+    zaten açım sırasında dosyanın "x" hakkına sahip olup olmadığına bakılmaktadır. O_RDONLY bayrağında açış sırasında "x" hakkına 
     bakılmaz ancak fexecve çağrısı sırasında prosesin dosyaya "x" hakkına sahip olup olmadığı kontrol edilmektedir. Linux çekirdeği
     O_EXEC bayrağını desteklemediği için Linux sistemlerinde dosya O_RDONLY bayrağı ile ya da O_PATH bayrağı ile açılmalıdır. 
     Anımsanacağı gibi O_PATH bayrağı da POSIX tarafından desteklenmemektedir. 
@@ -17244,8 +17243,8 @@ void exit_sys(const char *msg)
     }
     /* ... */
 
-    Açım işleminin Linux'ta O_RDONLY bayrağı ile yapıldığına dikkat ediniz. (Linux O_EXEC bayrağını desteklememektedir.) 
-    Örneğimizde fexecve fonksiyonuna üst prosesin çevre değişken listesi geçirilmiştir.
+    Açım işleminin Linux'ta O_RDONLY bayrağı ile yapıldığına dikkat ediniz. Örneğimizde fexecve fonksiyonuna üst prosesin 
+    çevre değişken listesi geçirilmiştir.
 ---------------------------------------------------------------------------------------------------------------------------*/
 
 #include <stdio.h>
@@ -17304,19 +17303,19 @@ void exit_sys(const char *msg)
     sistemlerinde her açık dosya için "close-on-exec" isminde bir bayrak da tutulmaktadır. Eğer bu bayrak "set" edilmişse bu 
     durumda exec işlemi sırasında bu dosya işletim sistemi tarafından otomatik olarak kapatılır. Eğer bu bayrak "reset" durumdaysa 
     bu durumda exec işlemi sırasında dosya kapatılmaz, exec yapılan program kodu dosyanın betimleyicisini bilirse onu kullanmaya 
-    devam edebilir. Bu bayrak default olarak "reset" durumdadır. Yani exec sonrasında önceki programın açmış olduğu dosyalar 
+    devam edebilir. Bu bayrak varsayılan durumda  set edilmemiştir. Yani exec sonrasında önceki programın açmış olduğu dosyalar 
     açık kalmaya devam etmektedir. İşte open fonksiyonuyla dosya açılırken açış modunda O_CLOEXEC bayrağı belirtilirse bu 
     bayrak set edilmiş olur. Böylece exec işlemi sırasında dosya otomatik biçimde kapatılır. Örneğin:
 
     fd = open("test.txt", O_RDONLY|O_CLOEXEC);
 
-    Programcı isterse herhangi bir zaman fcntl fonksiyonu ile de bu bayrağı set ya da reset edebilir. Biz bu fcntl fonksiyonunu 
+    Programcı isterse herhangi bir zaman fcntl fonksiyonu ile de bu bayrağı set ya da reset edebilir. Biz fcntl fonksiyonunu 
     henüz görmedik. Ancak bu bayrağın set edilmesi işlem şöyle yapılabilmektedir:
 
     if (fcntl(fd, F_SETFD, fcntl(fd, F_GETFD)|FD_CLOEXEC) == -1)
         exit_sys("fcntl");
 
-    Benzer biçimde bu bayrak şöyle de reset edilebilir:
+    Benzer biçimde bu bayrak şöyle reset edilebilmektedir:
 
     if (fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) & ~FD_CLOEXEC) == -1)
         exit_sys("fcntl");
@@ -17344,15 +17343,6 @@ void exit_sys(const char *msg)
 
     Bu durumda alt proseste dosya betimleyicisi kapalı olduğu için read fonksiyonu -1 ile geri dönecek ve errno değişkeni
     EBADF ("Bad file descriptor") ile set edilecektir. 
-
-    close-on-exec bayrağı bazı işlemler sırasında işletim sistemi tarafından set ya da reset edilebilmektedir. Örneğin dup 
-    ve dup2 fonksiyonları ile dosya betimleyicisinin kopyası çıkartılırken her zaman yeni betimleyicinin close on exec bayrağı 
-    reset durumda olur.
-
-    Anımsanacağı gibi POSIX'e 2024 versiyonu ile fork yaparken de dosyanın otomatik kapatılmasını sağlayan O_CLOFORK bayrağı
-    eklenmiştir. Ancak Linux'un bu bayrağı desteklemediğini belirtmiştik. Linux'un bu bayrağı desteklememesinin nedeni 
-    exec işlemi olmadan tek başına fork işleminin artık pek kullanılmaması ve bu desteğin mevcut çekirdek tasarımına bir yük 
-    getirmesidir. 
 ---------------------------------------------------------------------------------------------------------------------------*/
 
 /* sample.c */
@@ -17437,6 +17427,17 @@ void exit_sys(const char *msg)
     perror(msg);
     exit(EXIT_FAILURE);
 }
+
+/*---------------------------------------------------------------------------------------------------------------------------
+    close-on-exec bayrağı bazı işlemler sırasında işletim sistemi tarafından set ya da reset edilebilmektedir. Örneğin dup 
+    ve dup2 fonksiyonları ile dosya betimleyicisinin kopyası çıkartılırken her zaman yeni betimleyicinin close-on-exec bayrağı 
+    reset edilmektedir.
+    
+    Anımsanacağı gibi POSIX'e 2024 versiyonu ile fork yaparken de dosyanın otomatik kapatılmasını sağlayan O_CLOFORK bayrağı
+    eklenmiştir. Ancak Linux'un bu bayrağı desteklemediğini belirtmiştik. Linux'un bu bayrağı desteklememesinin nedeni 
+    exec işlemi olmadan tek başına fork işleminin artık pek kullanılmaması ve bu desteğin mevcut çekirdek tasarımına bir yük 
+    getirmesidir. 
+---------------------------------------------------------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------------------------------------------------------
     Şimdi de kabuk programlarının IO yönlendirmesini nasıl yaptığına ilişkin küçük bir uygulama üzerinde duralım. Anımsanacağı 
@@ -17601,11 +17602,11 @@ void exit_sys(const char *msg)
 
 /*---------------------------------------------------------------------------------------------------------------------------
     exec fonksiyonları ile betik (script) dosyaları da (yani text dosyalar da) çalıştırılabilmektedir. Bu özellik tamamen 
-    çekirdekte bulunan sistem fonksiyonları (Linux'ta execve) tarafından sağlanmaktadır. exec fonksiyonları (aslında Linux'ta 
-    execve sistem fonksiyonu) eğer çalıştırılmak istenen dosya "çalıştırılabilir bir dosya değilse (örneğin Linux'ta ELF 
-    formatı ya da a.out formatı değilse)" bu dosyanın birinci satırını okuyarak onunla özel bir işlem yapmaktadır. Çalıştırılabilir 
-    formata sahip olmayan bir dosyanın (tipik olarak bir text dosya) birinci satırı aşağıdaki gibi ise exec fonksiyonları 
-    burada özel bir işlem uygulamaktadır:
+    çekirdekte bulunan sistem fonksiyonları (Linux'ta execve ve execveat) tarafından sağlanmaktadır. exec fonksiyonları 
+    (aslında Linux'ta execve ve ve execveat sistem fonksiyonu) eğer çalıştırılmak istenen dosya "çalıştırılabilir bir dosya 
+    değilse (örneğin Linux'ta ELF formatı ya da a.out formatı değilse)" bu dosyanın birinci satırını okuyarak onunla özel 
+    bir işlem yapmaktadır. Çalıştırılabilir formata sahip olmayan bir dosyanın (tipik olarak bir text dosya) birinci satırı 
+    aşağıdaki gibi ise exec fonksiyonları burada özel bir işlem uygulamaktadır:
 
     #! [optional SPACE'ler] <executable file mutlak yol ifadesi> [isteğe bağlı argüman(lar)]
 
@@ -17626,9 +17627,9 @@ void exit_sys(const char *msg)
     başarısız olur ve yine errno değeri EACCES biçiminde set edilir.
 
     Yukarıdaki gibi shebang satırı içeren bir betik dosyası exec fonksiyonlarıyla çalıştırılmak istendiğinde exec fonksiyonları 
-    betik dosyasını değil "shebang" satırında belirtilen çalıştırılacak dosyayı çalıştırmaktadır. Ancak o dosyayı çalıştırırken 
-    betik dosyasının yol ifadesini de o programa komut satırı argümanı olarak geçirmektedir. Örneğin "myscript" ismindeki 
-    aşağıdaki dosyayı exec fonksiyonlarıyla çalıştırmak isteyelim:
+    betik dosyasını değil "shebang" satırında belirtilen dosyayı çalıştırmaktadır. Ancak o dosyayı çalıştırırken betik 
+    dosyasının yol ifadesini de o programa komut satırı argümanı olarak geçirmektedir. Örneğin "myscript" ismindeki aşağıdaki 
+    dosyayı exec fonksiyonlarıyla çalıştırmak isteyelim:
 
     #!/bin/bash
 
@@ -17652,7 +17653,7 @@ void exit_sys(const char *msg)
     argv[2] ---> exec fonksiyonunda belirtilen çalıştırılabilir olmayan dosyanın (yani betik dosyasının) yol ifadesi 
     argv[3] ve sonrası ---> exec fonksiyonunda belirtilen komut satırı argümanları ancak ilk argüman dahil değil
 
-    Eğer shebang'in yanındaki programın yol ifadesinin yanında isteğe bağlı argüman verilmemişse bu durumda shebang'te belirtilen programın
+    Eğer shebang'in yanındaki programın yol ifadesinin yanında isteğe bağlı argüman yoksa bu durumda shebang'te belirtilen programın
     komut satırı argümanları şöyle olacaktır:
 
     argv[0] ---> shebang'te belirtilen program dosyasına ilişkin yol ifadesi
@@ -17694,15 +17695,11 @@ void exit_sys(const char *msg)
     8
     9
 
-    Burada exec fonksiyonları aslında aşağıdaki gibi bir çalıştırma yapılmış gibi işlem exec uygulayacaktır:
-
-    $ python3 sample.py 
-
     - "test.txt" dosyasının shebang satırı şöyle olsun:
 
     #!/home/kaan/Study/UnixLinux-SysProg/sample ankara
 
-    Burada biz denememizin "/home/kaan/Study/UnixLinux-SysProg" dizininde yapıldığını varsayıyoruz. Siz bu denemeyi yaparken 
+    Burada biz denemenin "/home/kaan/Study/UnixLinux-SysProg" dizininde yapıldığını varsayıyoruz. Siz bu denemeyi yaparken 
     shebang satırındaki dizini kendi çalıştığınız dizinle değiştirmelisiniz. 
 
     Burada görüldüğü gibi shebang'te belirtilen programın yanında isteğe bağlı bir argüman ("ankara" argümanı) bulunmaktadır. 
@@ -17724,7 +17721,7 @@ void exit_sys(const char *msg)
 
     execl("test.txt", "test.txt", "ali", "veli", "selami", (char *)0);
 
-    Ekranda şunları görmeliyiz:
+    Ekranda şunları görürüz:
 
     sample running...
     argv[0]: /home/kaan/Study/UnixLinux-SysProg/10-Exec/sample
@@ -17738,7 +17735,7 @@ void exit_sys(const char *msg)
 
     execl("test.txt", "ali", "veli", "selami", (char *)0);
 
-    Ekrana şunlar çıkacaktır:
+    Bu durumda ekrana şunlar basılacaktır:
 
     sample running...
     argv[0]: /home/kaan/Study/UnixLinux-SysProg/10-Exec/sample
@@ -17747,7 +17744,7 @@ void exit_sys(const char *msg)
     argv[3]: veli
     argv[4]: selami
 
-    Şimdi de shebang satırı şöyle olsun:
+    Shebang satırı şöyle olsun:
 
     #!/home/kaan/Study/UnixLinux-SysProg/sample
 
@@ -17755,6 +17752,8 @@ void exit_sys(const char *msg)
     yapmış olalım:
 
     execl("test.txt", "test.txt", "ali", "veli", "selami", (char *)0);
+
+    Ekrana şunlar basılacaktır:
 
     sample running...
     argv[0]: /home/kaan/Study/UnixLinux-SysProg/10-Exec/sample
