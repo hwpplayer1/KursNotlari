@@ -17,7 +17,7 @@
 
                         Kurs Notları E-kitap haline de getirilmektedir: linuxkernelbook.readthedocs.io
 
-                                        Son Güncelleme: 26/09/2026 - Cumartesi
+                                        Son Güncelleme: 05/10/2026 - Pazartesi
 
 ----------------------------------------------------------------------------------------------------------------------*/
 
@@ -1476,12 +1476,12 @@
     - VMA'ya yazma yapıldığında bu yazma paylaşılan bellek alanına yansıtılmaz. O anda yazılan sayfanın bir kopyası 
     çıkartılarak yazma o kopya üzerine yapılır. Dolayısıyla başka bir proses bu yazma işlemini göremez.
 
-    Bir proses ilgili paylaşılan bellek alanı nesnesini MAP_PRIVATE ile map ettiğinde ve diğer proses o alana yazma yaptığında 
-    onun yazdığını MAP_PRIVATE yapan prosesin görüp görmeyeceği POSIX standartlarında belirsiz (unspecified) bırakılmıştır. 
-    Linux sistemlerinin man sayfasında da bu durum "unspecified" olarak belirtilmiş olsa da mevcut Linux çekirdeklerinde 
-    başka bir proses özel haritlanmış bir VMA'ya yazma yaptığında bu yazma özel haritlanmış proseste görülmektedir. Ancak 
-    özel haritalama yapan proses sayfaya yazma yaptığında artık o sayfanın kopyasından çıkartılacağı için bu yazma işleminden 
-    sonraki diğer prosesin yaptığı yazma işlemleri görülmemektedir.
+    Bir proses MAP_PRIVATE ile tahsis ettiğinde o alan bir dosya tabanlı ise ya da paylaşılan bir bellek alanı ise, diğer 
+    bir proses o alana yazma yaptığında onun yazdığını MAP_PRIVATE yapan prosesin görüp görmeyeceği POSIX standartlarında 
+    belirsiz (unspecified) bırakılmıştır. Linux sistemlerinin man sayfasında da bu durum "unspecified" olarak belirtilmiş 
+    olsa da mevcut Linux çekirdeklerinde başka bir proses özel haritlanmış bir VMA'ya yazma yaptığında bu yazma özel 
+    haritlanmış proseste görülmektedir. Ancak özel haritalama yapan proses sayfaya yazma yaptığında artık o sayfanın 
+    kopyasından çıkartılacağı için bu yazma işleminden sonraki diğer prosesin yaptığı yazma işlemleri görülmemektedir.
 
     MAP_SHARED ise paylaşılan bellek alanı söz konusu olduğunda yazma işleminin paylaşılan bellek alanına yapılacağını yani 
     "copy-on-write" yapılmayacağını belirtmektedir. Dolayısıyla MAP_SHARED bir haritalamada paylaşılan alana yazılanlar diğer 
@@ -1496,7 +1496,9 @@
     tahsisat yapılacak ve fonksiyon bu adresin aynısıyla geri dönecektir. (Tabii bu durumda programcının verdiği adres uygun 
     olmayabilir. Bu durumda fonksiyon da başarısız olur.) Eğer MAP_FIXED bayrağı belirtilmişse Linux sistemlerinde birinci 
     parametredeki adresin sayfa katlarında olma zorunluluğu vardır. Ancak POSIX standartlarının son versiyonları "may require" 
-    ifadesiyle işletim sisteminin bunu zorunlu tutulmayabileceğini belirtmektedir.
+    ifadesiyle işletim sisteminin bunu zorunlu tutmayabileceğini belirtmektedir. MAP_FIXED ile belirtilen adreste daha önce 
+    bir haritalama yapıldıysa MAP_FIXED bayrağı o haritalamayı sessizce kaldırıp (munmap mekanizmasıyla) tahsisatı yine 
+    yapmaktadır. Bu nedenle MAP_FIXED kullanırken dikkat etmek gerekir. 
 
     MAP_ANONYMOUS bayrağı "anonim haritalama (anonymous mapping) yapmak için kullanılmaktadır. Anonim haritalama dosya üzerinde 
     yapılmayan (yani bellek tabanlı dosya biçiminde olmayan) VMA tahsisatları için kullanılmaktadır. Dolayısıyla anonim 
@@ -1532,6 +1534,48 @@
     Bu VMA'daki sayfaların PROT_READ|PROT_WRITE özelleğine sahip olduğuna dikkat ediniz. Bu sayfalardan hem okuma
     yapılabilece hem de yazma yapılabilecektir. Biz örneğimizde tahsis edilen VMA'yı serbest bırakmadık. Ancak proses
     sonlandığında zaten serbest bırakma işlemi yapılacaktır.
+----------------------------------------------------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------------------------------------------------
+    Biz yukarıda POSIX standartlarındaki MAP_ bayraklarını ele aldık. Ancak Linux çekirdeğindeki işlevsellik daha fazladır. 
+    Linux çekirdek POSIX'te olmayan çeşitli MAP_ bayraklarını da içermektedir. Linux'a özgü bayraklardan da kısaca 
+    bahsetmek istiyoruz. 
+
+    MAP_FIXED_NOREPLACE bayrağı çekirdeğe 4.17 versiyonuyla eklenmiştir. Anımsanacağı gibi MAP_FIXED bayrağında eğer 
+    haritalanacak adreste daha önce başka bir haritalama yapıldıysa oradaki VMA'lar kaldırılmaktadır. Ancak MAP_FIXED_NOREPLACE
+    bayrağında bu işlem yapılmaz fonksiyon EEXIST errno değeriyle başarısız olur. 
+
+    Normal olarak bir VMA mmap fonksiyonuyla tahsis edildiğinde henüz o lana için fiziksel bellek tahsis edilmemektedir. 
+    Yalnızca sayfa tablosunda girişler ayarlanmaktadır. Tahiss edilen alana ilişkin sayfa tabloso girişlerinin P biti 0 
+    yapılmaktadır. Fiziksel bellekteki tahsisat bu alana erişildiğinde oluşan page fault ile yapılmaktadır. İşte 
+    Linux'a özgü MAP_POPULATE bayrağı girilirse bu durumda fiziksel bellek tahsisatı işin başında yapılıp sayfa tablosu 
+    o alana ilişkin bir biçimde doldurulmaktadır. Eğer haritalama dosya tabanlı yapılıyorsa bu durunda ilgili dosyaya 
+    ilişkin parçaların sayfa önbelleğine çekilmesi anlamına da gelmektedir. 
+
+    Copy-on-write özelliği ile (yani MAP_PRIVATE ile) haritalama yapıldığında tahsis haritalanan bellek alanına yazma 
+    yapıldı zaman bu yazılanlar sayfa bellek atılırken takas dosyasına aktarılmaktadır. Normal olarak takas dosyasında 
+    bu işlem için yerin olup olmadığı sorgulanmaktadır. Buna İngilizce "commit" denilmektedir. İşte MAP_NORESREVE 
+    bayrağı bu "commit" işleminin bypass edilmesine yol açmaktadır. Tabii takas dosyasında baştan bir "commit" yapılmadığı 
+    için yazma işlemi sırasında orada yer kalmamışsa "OOM Killer" mekanizması devreye sokulmaktadır. 
+
+    MAP_HUGE_2MB ve MAP_HUGE_1GB bayrakları standart sayfa boylarında değil (yani tipik 4K) 2 MB'lik ve 1GB'lik sayfaların
+    tahsis edilmesini sağlamaktadır. 
+
+    MAP_LOCKED bayrağı tahsis edilen VMA'daki sayfaların fiziksel bellekten sayfa geri alımı sırasında atılmamasını 
+    sağlamaktadır. 
+
+    MAP_GROWSDOWN bayrağı bir çeşit stack etkisi yaratmaktadır. Bu bayrakla tahsisat yapıldığında bellekte stack gibi 
+    bu alanın yukarısına (yani düşük adrese) erişildiğinde otomatik VMA büyütülmektedir. MAP_STACK bayrağı artık 
+    işlevselliğini kaybetmiştir, geçmişe doğru uyum için bulundurulmaktadır. 
+
+    MAP_SYNC bayrağı haritalama dosya tabanlı yapıldıysa dosyanın metadata verilerinin yazma ve okuma sırasında disk 
+    ile güncel hale getirilmesii sağlamaktadır.
+
+    MAP_32BIT bayrağı 64 bit sistemlerdeki 32 bit pogramlar için tahsisatın ilk 2GB içerisinde yapılmasını sağlamaktadır. 
+    
+    MAP_UNINITIALIZED: Yalnızca gömülü, MMU'suz sistemlerde (sayfa tablosu ve sayfa koruması olmayan sistemlerde)  
+    CONFIG_MMAP_ALLOW_UNINITIALIZED konfigürasyon parametresi aktif olacak biçimde derleme yapılmışsa anonim sayfaların 
+    sıfırlanmamasına izin verir; nomal Linux'ta çekirdeklerinde bu bayrak dikkate alınmamaktadır.
 ----------------------------------------------------------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------------------------------------------------------
@@ -1841,7 +1885,7 @@ void exit_sys(const char *msg)
     Biz yukarıda mmap fonksiyonun kullanıcı modundaki kullanımını ele aldık. Şimdi de bu fonksiyonun çekirdek tasarımında 
     nasıl işlev gördüğünü inceleyeceğiz. Şu sorulara yanıtlar vermeye çalışacağız:
 
-    - Anonim haritlama (yani bir dosyaya referans etmeyen haritalama) çekirdek tarafından nasıl gerçekleştirilmeltedir?
+    - Anonim haritlama (yani bir dosyaya referans etmeyen haritalama) çekirdek tarafından nasıl gerçekleştirilmektedir?
     - "Özel haritalama (private mapping)", "paylaşımlı haritlama" çekirdke tarafından nasıl gerçekleştirilmektedir?
     - Bellek tabanlı dosyaların çekirdek gerçekleştirimi nasıldır?
 ----------------------------------------------------------------------------------------------------------------------*/
@@ -1949,55 +1993,903 @@ void exit_sys(const char *msg)
 ----------------------------------------------------------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------------------------------------------------------
+                                    106. Ders 03/10/2026 - Cumartesi
+----------------------------------------------------------------------------------------------------------------------*/
 
+/*----------------------------------------------------------------------------------------------------------------------
+    Yukarıda biz sys_mmap sistem fonksiyonun akışını verdik. Çekirdek kendi içerisinde haritalama yaparken bu sistem 
+    fonksiyonunu kullanamaz. Onun yerine "mm/util.c" içerisinde bulunan vm_mmap fonksiyonunu kullanmaktadır. Örneğin 
+    exec fonksiyonları çalıştırılabilir dosyanın bölütlerini (segments) belleğe yüklerken vm_mmap fonksiyonunu kullanmaktadır. 
+    mm_map fonksiyonu zaten kendi içerisinde vm_mmap_pgoff fonksiyonunu çağırmaktadır. Yani fonksiyonun işlevselliği 
+    sistem fonksiyonuyla aynıdır. Aşağıda sistem fonksiyonun ve vm_mmap fonksiyonun akışlarını aynı şekil üzerinde 
+    veriyoruz:
+
+          KULLANICI ALANI
+    ┌──────────────────────────────┐
+    │ mmap()  [glibc __mmap64]     │
+    └──────────────┬───────────────┘
+                    │ syscall (rax = 9)
+    ════════════════╪═══════════════════════════════════════════════════
+    ÇEKİRDEK       ▼
+    ┌──────────────────────────────┐    ┌──────────────────────────────┐
+    │ entry_SYSCALL_64             │    │ Çekirdek içi çağıranlar:     │
+    │   └─ do_syscall_64           │    │   elf_map()   [binfmt_elf.c] │
+    │ arch/x86/entry/              │    │   sürücüler (ör. i915_gem)   │
+    └──────────────┬───────────────┘    │   EXPORT_SYMBOL(vm_mmap)     │
+                   ▼                    └──────────────┬───────────────┘
+    ┌──────────────────────────────┐                   ▼
+    │ SYSCALL_DEFINE6(mmap)        │    ┌──────────────────────────────┐
+    │   off → pgoff (>>PAGE_SHIFT) │    │ vm_mmap()                    │
+    │ arch/x86/kernel/sys_x86_64.c │    │   off+len taşma → -EINVAL    │
+    └── ───────────┬───────────────┘    │   offset_in_page → -EINVAL   │
+                   ▼                    │   pgoff = off >> PAGE_SHIFT  │
+    ┌──────────────────────────────┐    │ mm/util.c                    │
+    │ ksys_mmap_pgoff()            │    └──────────────┬───────────────┘
+    │   fget(fd) / MAP_HUGETLB     │                   │
+    │ mm/mmap.c                    │                   │
+    └──────────────┬───────────────┘                   │
+                   └─────────────────┬─────────────────┘
+                                     ▼
+    ┌────────────────────────────────────────────────────────────────────┐
+    │ vm_mmap_pgoff()     ◄── ORTAK NOKTA ──►     mm/util.c              │
+    │   mm = current->mm   (daima çağıran sürecin mm'i)                  │
+    │   security_mmap_file()                                             │
+    │   mmap_write_lock_killable(mm)       ── kilit başı ──              │
+    │                                                                    │
+    │   ┌──────────────────────────────────────────────────────────────┐ │
+    │   │ do_mmap()                                 mm/mmap.c          │ │
+    │   │   doğrulama: len, RLIMIT_AS, map_count                       │ │
+    │   │   prot/flags → vm_flags                                      │ │
+    │   │      ├─► __get_unmapped_area()                               │ │
+    │   │      │     └─► arch_get_unmapped_area_topdown()              │ │
+    │   │      │           └─► vm_unmapped_area()  [Maple gap]         │ │
+    │   │      ▼                                                       │ │
+    │   │   mmap_region()        (6.13+: __mmap_region, mm/vma.c)      │ │
+    │   │     ├─ do_vmi_munmap()           MAP_FIXED çakışma           │ │
+    │   │     ├─ security_vm_enough_memory_mm()  overcommit            │ │
+    │   │     ├─ vma_expand() / merge      komşuyla birleş             │ │
+    │   │     ├─ vm_area_alloc()           yeni VMA                    │ │
+    │   │     ├─ ┌─ dosya:        call_mmap() → f_op->mmap             │ │
+    │   │     │  ├─ SHARED|ANON:  shmem_zero_setup()                   │ │
+    │   │     │  └─ PRIVATE|ANON: vma_set_anonymous()                  │ │
+    │   │     ├─ vma_iter_store()          mm_mt Maple Tree            │ │
+    │   │     ├─ vma_link_file()           i_mmap interval tree        │ │
+    │   │     └─ vm_stat_account()                                     │ │
+    │   │   *populate = len   (MAP_POPULATE / VM_LOCKED)               │ │
+    │   └──────────────────────────────────────────────────────────────┘ │
+    │                                                                    │
+    │   mmap_write_unlock(mm)              ── kilit sonu ──              │
+    │   userfaultfd_unmap_complete()                                     │
+    │   if (populate) mm_populate()               mm/gup.c               │
+    └──────────────────────────────────┬─────────────────────────────────┘
+                                       │
+                     ┌─────────────────┴─────────────────┐
+                     ▼                                   ▼
+            adres / -errno → rax                unsigned long döner;
+            sysret → glibc → kullanıcı          çağıran IS_ERR_VALUE()
+                                                ile denetler (ör. elf_map)
+----------------------------------------------------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------------------------------------------------
+    Biz yukarıdaki fonksiyonların işleyişlerinin ayrıntıları üzerinde durmayacağız. Ancak bu fonksiyonların kullanıldığı 
+    mekanizmaları açıklayacağız. Neticde bu fonksiyonlar bir VMA (vm_area_struct) nesnesinin oluşturulmasını ve prosesin 
+    sanal bellek alanına bu VMA'nın bağlanmasını sağlamaktadır. Ancak bu işlemi dosya tabanlı bir biçimde de yapmaktadır. 
+    Bu nedenle mmap fonksiyonu ve vm_mmap fonksiyonu yüksek seviyeli fonksiyonalardır. vm_mmap fonksiyonu export edilmiştir, 
+    dolayısıyla çekirdek modülleri ve aygıt sürücüler tarafından da kullanılabilir. Ancak diğer aşağı seviyeli fonksiyonlar
+    export edilmemiştir. 
+
+    Çekirdek içerisinde vm_mmap fonksiyonundan daha düşük seviyeli bütünsrel işlem yapan bir fonksiyon yoktur. Ancak 
+    işlemler aşağıda seviyeli çekirdek fonksiyonlarıyla parça parça da yapılabilmektedir. Örneğin güncel çekirdeklerde 
+    "mm/vma_init.c" dosyasındaki vm_area_alloc fonksiyonu bir vm_area_struct nesnesini yaratıp ona ilkdeğer vermektedir:
+
+    struct vm_area_struct *vm_area_alloc(struct mm_struct *mm)
+    {
+        struct vm_area_struct *vma;
+
+        vma = kmem_cache_alloc(vm_area_cachep, GFP_KERNEL);
+        if (!vma)
+            return NULL;
+
+        vma_init(vma, mm);
+
+        return vma;
+    }
+
+    Oluşturulan vm_area_struct nesnesinin çeşitli özelliklerini set edebn faonksiyonlar buluınmaktadır. Aşağıda güncel 
+    çekirdeklerde bulunan bu setter fonksiyonlarının listesini veriyoruz:
+
+    ┌──────────────────────┬───────────────────────────────┬────────────────────┐
+    │      Fonksiyon       │     Set ettiği alan(lar)      │        Not         │
+    ├──────────────────────┼───────────────────────────────┼────────────────────┤
+    │ vma_init             │ vm_mm, vm_ops, anon_vma_chain │ memset + lock init │
+    │ vma_set_anonymous    │ vm_ops = NULL                 │ anonim yapar       │
+    │ vma_set_range        │ vm_start, vm_end, vm_pgoff    │ mm/vma.h, iç API   │
+    │ vma_set_file         │ vm_file                       │ get_file + fput    │
+    │ vma_set_page_prot    │ vm_page_prot                  │ writenotify hesabı │
+    │ vma_dup_policy       │ vm_policy                     │ CONFIG_NUMA        │
+    │ vma_numab_state_init │ numab_state                   │ NUMA balancing     │
+    │ vma_lock_init        │ vm_lock_seq, vm_refcnt        │ per-VMA lock       │
+    │ vma_mark_attached    │ vm_refcnt (0 → 1)             │ ağaca girerken     │
+    │ vma_mark_detached    │ vm_refcnt (→ 0)               │ ağaçtan çıkarken   │
+    │ vma_start_write      │ vm_lock_seq                   │ yazma kilidi       │
+    └──────────────────────┴───────────────────────────────┴────────────────────┘
+
+    ┌─────────────────────┬──────────────────────┬─────────────────────┐
+    │      Fonksiyon      │        İşlem         │        Kilit        │
+    ├─────────────────────┼──────────────────────┼─────────────────────┤
+    │ vm_flags_init       │ atama                │ gerekmez (detached) │
+    │ vm_flags_reset      │ atama                │ çağıran tutmalı     │
+    │ vm_flags_reset_once │ WRITE_ONCE ile atama │ çağıran tutmalı     │
+    │ vm_flags_set        │ |= flags             │ vma_start_write()   │
+    │ vm_flags_clear      │ &= ~flags            │ vma_start_write()   │
+    │ vm_flags_mod        │ |= set, &= ~clear    │ vma_start_write()   │
+    └─────────────────────┴──────────────────────┴─────────────────────┘
+
+    Aşağıda çekirdeğin aşağı seviyeli fonksiyonları kullanılarak minimal tahssisat yapan bir fonksiyon örneği verilmiştir:
+
+    #include <linux/mm.h>
+    #include <linux/mman.h>
+    #include <linux/sched/mm.h>
+
+    /*
+    * Create a minimal anonymous VMA in @mm.
+    * Returns the start address on success, or a negative errno value.
+    */
+    static unsigned long minimal_vma_create(struct mm_struct *mm,               
+            unsigned long len, vm_flags_t vm_flags)
+    {
+        struct vm_area_struct *vma;
+        unsigned long addr;
+        int err;
+
+        len = PAGE_ALIGN(len);
+        if (!len)
+            return -EINVAL;
+
+        /* Same defaults that do_mmap() adds */
+        vm_flags |= mm->def_flags | VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC;
+
+        /* 1. Allocate and initialise the struct from the slab cache */
+        vma = vm_area_alloc(mm);
+        if (!vma)
+            return -ENOMEM;
+        vma_set_anonymous(vma);			/* vm_ops = NULL */
+
+        if (mmap_write_lock_killable(mm)) {
+            err = -EINTR;
+            goto out_free;
+        }
+
+        /* 2. Pick a free range (walks the maple tree, needs the lock) */
+        addr = __get_unmapped_area(NULL, 0, len, 0, 0, vm_flags);
+        if (IS_ERR_VALUE(addr)) {
+            err = (int)addr;
+            goto out_unlock;
+        }
+
+        /* 3. Fill in the fields */
+        vma_set_range(vma, addr, addr + len, addr >> PAGE_SHIFT);
+        vm_flags_init(vma, vm_flags);		/* not yet linked: no write lock needed */
+        vma->vm_page_prot = vm_get_page_prot(vm_flags);
+
+        /* 4. Link into the address space (maple tree + map_count) */
+        err = insert_vm_struct(mm, vma);
+        if (err)
+            goto out_unlock;
+
+        vm_stat_account(mm, vm_flags, len >> PAGE_SHIFT);
+        mmap_write_unlock(mm);
+
+        pr_debug("minimal VMA created: %#lx-%#lx\n", addr, addr + len);
+        return addr;
+
+    out_unlock:
+        mmap_write_unlock(mm);
+    out_free:
+        vm_area_free(vma);
+        return err;
+    }
+
+    Buradaki aşağı seviyeli fonksiyonların neler yaptığı koddan anlaşılabilir. Örneğin __get_unmapped_area fonksiyonu 
+    prosesin adres alanında mapl ağacında belli uzunlukta boş yer aramaktadır. insert_vm_struct fonksiyonu bu alanı 
+    prosesin sanal belleğine bağlamaktadır. 
+----------------------------------------------------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------------------------------------------------
+    Şimdi mmap fonksiyonu ile dosya tabanlı VMA tahsisatınının genel işleyişi üzerinde durmak istiyoruz. Yukarıda da 
+    belirtitğimiz gibi bir VMA'yı bir dosya ile ilişkilendirdiğimizde (buna kullanıcı modunda "bellek tabanlı dosya 
+    (memory mapped file)" dendiğini anımsayınız) arık VMA'ya ilişkin bellek alanları aslında dosya önbelleğine 
+    yönlendirilmektedir. Böylece dosya aüzerinde read/write ile işlem yapıldığında da doğrudan VMA üzerinde işlem 
+    yapıldığında da aslında işlemler aynı sayfa önbelleği üzerinde yapılmaktadır. Yani aslında mmap fonksiyonun bize 
+    verdiği adres dosya önbelleğindeki sayfa adresleriyle aynıdır. Bu durumu aşağıdaki şekille betimleyebiliriz:
+
+       (a) read()/write() modeli                     (b) mmap() modeli
+
+       Proses adres alanı                             Proses adres alanı
+      ┌───────────────────┐                         ┌───────────────────┐
+      │ kullanıcı tamponu │                         │   mmap bölgesi    │
+      └─────────▲─────────┘                         └─────────▲─────────┘
+                │                                             │
+                │ ▲ copy_to_user   (önbellek → tampon)        │ PTE: aynı folio'ya
+                │ ▼ copy_from_user (tampon → önbellek)        │ doğrudan eşleme
+                │                                             │ (load/store, kopya yok)
+    ════════════╪═════════════════════════════════════════════╪════════════════════════
+    Çekirdek    │                                             │
+                │                                             │
+                │          ┌─────────────────────────┐        │
+                └─────────►│    sayfa önbelleği      │◄───────┘
+                           │    folio (RAM, ortak)   │
+                           └────────────▲────────────┘
+                                        │
+                                        │ ▲ read_folio  (disk → önbellek)
+                                        │ ▼ writepages  (önbellek → disk)
+                                        │
+                           ┌────────────▼────────────┐
+                           │          disk           │
+                           └─────────────────────────┘
+----------------------------------------------------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------------------------------------------------
+    vm_area_struct yapısının dosya ilişkilendirmesi için iki elemanı bulunmaktadır:
+
+    struct vm_area_struct {
+        /* ... */
+
+        unsigned long    vm_pgoff;           /* dosya ofseti (sayfa)          */
+        struct file      *vm_file;           /* haritalanan dosya             */
+
+        /* ... */
+    };
+
+    Buradaki vm_file elemanı VMA''nın ilişkilendirildiği dosyaya ilişkin dosya nesnesini göstermektedir. vm_pgoff 
+    elemanı ise ilgili alanın dosyanın hangi offset'in itibaren haritlandığını belirtmektedir. Bu iki alan bize şu 
+    bilgiyi vermektedir: "Bu VMA vm_file dosyasının vm_pgoff offset'inden tibaren olan kısmını bellekte temsil 
+    etmektedir." VMA'nın uzunluğu zaten yapının vm_start ve vm_end elemanlarıyla belirtiliyoru:
+
+    struct vm_area_struct {
+        unsigned long    vm_start, vm_end;   /* [vm_start, vm_end)    
+        /* .. */
+        unsigned long    vm_pgoff;           /* dosya ofseti (sayfa)          */
+        struct file      *vm_file;           /* haritalanan dosya             */
+
+        /* ... */
+    };
+
+    Şimdi iki ayrı prosesin aynı dosyayı MAP_SHARED ile haritaladığını varsyaalım. Bu durumda iki proseste farklı 
+    sanal adres elde edilecektir. Ancak bunlar aynı dosyanın aynı önbellek sayfalarına yönlendirilecektir. Yani 
+    iki prosesteki file nesnesinden hareketle erişilen address_space nesneleri aslında aynı nesnelerdir. Dolayısıyla
+    VMA üzeirnde erişim yapılırken aynı address_space nesnesi dolayısıyla da aynı sayfa önbelleği kullanılmaktadır. 
+    Bunu şekilsel olarak aşağıda belirtiyoruz:
+
+             PROSES A                                      PROSES B
+    mm_struct ─► mm_mt (Maple Tree)               mm_struct ─► mm_mt (Maple Tree)
+                  │                                             │
+                  ▼                                             ▼
+          ┌───────────────────┐                         ┌───────────────────┐
+          │ VMA_A             │                         │ VMA_B             │
+          │ vm_flags: SHARED  │                         │ vm_flags: PRIVATE │
+          │ vm_pgoff = 0      │                         │ vm_pgoff = 2      │
+          │ vm_file ──┐       │                         │ vm_file ──┐       │
+          └───────────┼───────┘                         └───────────┼───────┘
+                      │                                             │
+          ┌───────────▼─────────────────┐               ┌───────────▼─────────────────┐
+          │ struct file (A'nın open'ı)  │               │ struct file (B'nin open'ı)  │
+          │   f_mapping ──┐             │               │   f_mapping ──┐             │
+          └───────────────┼─────────────┘               └───────────────┼─────────────┘
+                          │                                             │
+    ┌─────────────────────┼─────────────────────────────────────────────┼───────────────────┐
+    │ inode               │                                             │                   │
+    │   i_size            │                                             │                   │
+    │   i_data (gömülü):  │                                             │                   │
+    │   ┌─────────────────▼─────────────────────────────────────────────▼───────────────┐   │
+    │   │ struct address_space   ◄── iki f_mapping de &inode->i_data                    │   │
+    │   │   host    ──► inode                                                           │   │
+    │   │   i_mmap  (interval tree): { VMA_A [0..7], VMA_B [2..5] }                     │   │
+    │   │   i_pages (XArray):                                                           │   │
+    │   │      [0] ──► folio0                                                           │   │
+    │   │      [1] ──► folio1                                                           │   │
+    │   │      [2] ──► folio2 ──────────────────────────────┐                           │   │
+    │   │      [3] ──► (boş: henüz okunmadı)                │                           │   │
+    │   │   a_ops   ──► ext4_aops                           │                           │   │
+    │   └───────────────────────────────────────────────────┼───────────────────────────┘   │
+    └───────────────────────────────────────────────────────┼───────────────────────────────┘
+                                                            │
+                                      ┌─────────────────────▼─────────────────────┐
+                                      │ folio2                                    │
+                                      │   mapping   = &inode->i_data              │
+                                      │   index     = 2                           │
+                                      │   _mapcount = 1   (-1 tabanlı → 2 eşleme) │
+                                      └───────────▲───────────────────▲───────────┘
+                                                  │                   │
+                                PTE (A, sayfa 2) ─┘                   └─ PTE (B, sayfa 0)
+
+----------------------------------------------------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------------------------------------------------
+    mmap işlemi sırasında vm_area_strtc nesnesi yoluyla kurulan ilişki ağı aşağıdaki tabloda özetle belirtilmektedir:
+
+    ┌────────────────────┬────────────────────────────┬────────────────────────────────────────────────────────────┐
+    │        Bağ         │      Kurulduğu yer         │                       Kurulan ilişki                       │
+    ├────────────────────┼────────────────────────────┼────────────────────────────────────────────────────────────┤
+    │ 1. vm_pgoff        │ mmap_region()              │ VMA başlangıcı ↔ dosyanın hangi sayfası                    │
+    │ 2. vm_file         │ mmap_region() (get_file)   │ VMA → struct file → f_mapping                              │
+    │ 3. vm_ops          │ f_op->mmap() (call_mmap)   │ Sayfa hatasında çağrılacak işlevler                        │
+    │ 4. i_mmap_writable │ mapping_map_writable()     │ Dosyada paylaşımlı harita var (6.7+: yalnızca yazılabilir) │
+    │ 5. i_mmap düğümü   │ vma_interval_tree_insert() │ Dosya aralığı → VMA (ters yön)                             │
+    └────────────────────┴────────────────────────────┴────────────────────────────────────────────────────────────┘
+----------------------------------------------------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------------------------------------------------
+    Çekirdek başta program yükleme olmak üzere  mmap fonksiyonunu dosya tabanlı bir biçimde çeşitli yerlerde kullanmatadır. 
+    Biz kurusumuzun exec işlemlerini ele aldığımız bölümğnde ELF dosyalarının nasıl yüklendiğini anlatacağız. Ancak 
+    bırada konu bağlamında bu onuda birkaç açıklama yapmak istiyoruz. exec fonksiyonları ile bir program dosyası 
+    yüklenirken çekirdek önce ELF dosyasının formatınn yüklenecek kısımlarını "Program Header Table" bölümünden elde 
+    etmektedir. ELF doyasının "Program Header Table" bölümünde yüklenecek program bölütlerinin (segments) uzunlukları, 
+    sanal bellekte nereye yükleneceği, haritalama ve koruma özellikleri gibi bilgiler de  bulunmaktadır. Çekirdek 
+    çalıştırılabilir bir ELF dosyanın bölümlerinin bazılarını dosya tabanlı bir biçimde bazılarını ise anonim biçimde 
+    yüklemektedir. Örneğin programın makine kodlarının bulunduğu bölüt (".txt" kısmı) dosya tabanlı bir biçimde read-only 
+    olarak belleğe haritalanmaktadır. Dolayısıyla dosyanın bu bölütünün sayfaları dosyanın inode önbelleğinde bulunacaktır. 
+    Eğer bellek basısı altında bu önbellekten sayfalar alınırsa ilk erişim yapıldığında yeniden sayfa önbelleğine 
+    çekilecektir. Örneğin programın ilkedeğer verilmiş statik verilerinin bulunduğu bölüt (".data" kısmı) MAP_PRIVATE 
+    bayrağı ile yine dosya tabanı bir biçimde haritalanmaktadır. Program çalışırken bu bölüme bir yazma yapıldığında 
+    copy-on-write mekanizması devreye girip yazma yapılan kısım için ayrı kopya oluşturulacak ve bu kopya gerektiğinde 
+    artık takas dosyasında saklanacaktır. 
+----------------------------------------------------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------------------------------------------------
+    Aşağıdaki tabloda "Program Header Table" içerisindeki tipik kısımların hangi koruma bilgilerine sahip olduğu 
+    beirtilmektedir. Buradaki "prot" sütununda mmap ile yükleme yapılırken hangi PROT bayraklarının kullanıldığı 
+    belirtilmektedir:
+
+    ┌─────────┬─────────┬────────────────────────────────────┬──────────────────────┬─────────────┐
+    │ Segment │ p_flags │         Tipik Bmlümler             │         prot         │  /proc/maps │
+    ├─────────┼─────────┼────────────────────────────────────┼──────────────────────┼─────────────┤
+    │ LOAD #1 │ R       │ ELF hdr, .interp, .dynsym, .rela.* │ PROT_READ            │ r--p        │
+    │ LOAD #2 │ R E     │ .init, .plt, .text, .fini          │ PROT_READ|PROT_EXEC  │ r-xp        │
+    │ LOAD #3 │ R       │ .rodata, .eh_frame_hdr, .eh_frame  │ PROT_READ            │ r--p        │
+    │ LOAD #4 │ RW      │ .init_array, .dynamic, .got, .data │ PROT_READ|PROT_WRITE │ rw-p        │
+    │ (bss)   │ RW      │ .bss (p_memsz > p_filesz kısmı)    │ PROT_READ|PROT_WRITE │ rw-p (anon) │
+    └─────────┴─────────┴────────────────────────────────────┴──────────────────────┴─────────────┘
+
+    PT_LOAD bayrağı ELF formatında bir bölütün sanal belleğe yüklenmesi gerektiğini belirtmektedir. Aşağıdaki tabloda 
+    PT_LOAD bayrağı içeren bölütlerin hangi MAP_ bayraklarıyla yüklendiği belirtilmektedir. 
+
+    ┌─────────────────────┬───────────────────────┬─────────────────────────────────┐
+    │        Durum        │         e_type        │            mmap flags           │
+    ├─────────────────────┼───────────────────────┼─────────────────────────────────┤
+    │ İlk PT_LOAD         │ ET_EXEC               │ MAP_PRIVATE|MAP_FIXED_NOREPLACE │
+    │ İlk PT_LOAD         │ ET_DYN + PT_INTERP    │ MAP_PRIVATE|MAP_FIXED_NOREPLACE │
+    │ İlk PT_LOAD         │ ET_DYN, PT_INTERP yok │ MAP_PRIVATE (adres serbest)     │
+    │ Sonraki PT_LOAD'lar │ hepsi                 │ MAP_PRIVATE|MAP_FIXED           │
+    │ .bss sayfa ötesi    │ hepsi                 │ anonim (vm_brk_flags)           │
+    └─────────────────────┴───────────────────────┴─────────────────────────────────┘
+
+    Aşağıdaki tabloda da PT_LOAD bayrağına sahip olmayan bölütlerin nasıl kullanıldığı ve ne yüklenip yüklenmeyeceğine 
+    ilişkin bilgiler verilmektedir:
+
+    ┌─────────────────────┬────────────────────────────────────────────────────────────────┐
+    │        p_type       │                        Kernel ne yapar?                        │
+    ├─────────────────────┼────────────────────────────────────────────────────────────────┤
+    │ PT_INTERP           │ Yorumlayıcı yolunu okur, ld.so'yu load_elf_interp() ile yükler │
+    │ PT_GNU_STACK        │ Map edilmez; PF_X varsa stack VM_EXEC olur                     │
+    │ PT_GNU_PROPERTY     │ Parse edilir (arm64 BTI -> exec segment'lere PROT_BTI)         │
+    │ PT_GNU_RELRO        │ Kernel dokunmaz; ld.so relocation sonrası mprotect(PROT_READ)  │
+    │ PT_PHDR/DYNAMIC/TLS │ Ayrıca map edilmez; zaten bir PT_LOAD içindedir                │
+    └─────────────────────┴────────────────────────────────────────────────────────────────┘
+----------------------------------------------------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------------------------------------------------
+                                        107. Ders 04/10/2026 - Pazar
+----------------------------------------------------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------------------------------------------------
+    Bu bölümde Linux çekirdeğinde proseslerin ve thread'lerin yaratılması süreci üzerinde duracağız. Bölüm içerisinde 
+    önce proseslerin ve thread'lerin kullanıcı modunda nasıl yaratıldığını anımsatacağız. Sonra bu süreçlerin çekirdek 
+    tarafını ele alacağız
+----------------------------------------------------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------------------------------------------------
+    Bilindiği gibi UNIX türevi sistemlerde prosesler kullanıcı alanında fork isimli POSIX fonksiyonuyla yaratılmaktadır. 
+    fork fonksiyonunun prototipi şöyledir:
+
+    #include <unistd.h>
+
+    pid_t fork(void);
+
+    İngilizce "fork" sözcüğü Türkçe "çatal" anlamına gelmektedir. "Akışın çatallanması" gibi bir benzetmeye dayanılarak bu 
+    isim uydurulmuştur. 
+    
+    fork bir prosesin tamamen özdeş bir kopyasını oluşturmaktadır. fork fonksiyonun çalışmasını şöyle bir analoji ile daha 
+    iyi anlayabiliriz. Diyelim ki bir klonlama makinesi var. Bu makine insandaki tüm atomları bire bir kopyalayarak yeni bir 
+    klon oluşturuyor olsun. Bu durumda klonlama makinesine bir kişi girdiğinde makineden iki kişi çıkmaktadır. Makineden çıkan 
+    iki kişinin tüm geçmiş yaşantıları, her şeyi aynı olacaktır. Makineden çıktığında her iki kişi de kendini gerçek kopya 
+    sanabilir. Çünkü klonlama sırasında tüm atomlar (bellek mekanizması nöral düzeyde işlev görmektedir, nöronlar da neticede 
+    atomlardan atomlardan oluşmaktadır) kopyalanmıştır. Makineden çıkan iki kişinin her şeyi aynıdır. Ancak makineden çıktıktan 
+    sonra artık bunlar farklı olaylarla karşılaşacağı için bellek ve deneyim olarak farklılaşacaklardır. Burada her ne kadar 
+    makineden çıkan iki kişi de kendisinin orijinal kopya olduğunu sanıyorsa da klonlamayı yapan operatör kimin orijinal kopya 
+    kimin onun kopyası olduğunu bilmektedir. 
+    
+    İşte fork fonksiyonunun çalışması yukarıdaki analojiye çok benzemektedir. fork fonksiyonuna giren akış orada yeni ve 
+    özdeş bir prosesin yaratılmasına yol açmaktadır. Yeni yaratılan prosesin bellek alanı ve proses kontrol bloğu (task_struct 
+    nesnesi) büyük ölçüde üst prosesten kopyalanmaktadır. Yeni yaratılan prosesin akışı fork içerisinden başlatılmaktadır. 
+    Böylece asıl proses ile yeni yaratılan prosesin her ikisi de fork fonksiyonundan çıkar. Asıl proses ile yeni yaratılan 
+    proses aynı bellek alanına (yani kabaca aynı "code", "data", "stack" ve "heap" alanlarına) sahiptir. fork çağrısını 
+    yapan asıl prosese "üst proses (parent process)", fork ile yaratılan yeni prosese ise "alt proses (child process)" 
+    denilmektedir. Tabii üst proses de aslında fork çağırısı ile başka bir proses tarafından yaratılmıştır.
+
+    Yani fork fonksiyonunda kabaca şunlar yapılmaktadır:
+
+    1) Alt proses için yeni bir proses kontrol bloğu (task_struct) yaratılır. fork işlemini yapan prosesin (üst proses) proses 
+    kontrol bloğunun (task_struct) içeriği yeni yaratılan prosesin (alt proses) proses kontrol bloğuna kopyalanır. Böylece üst 
+    proses ile yeni yaratılan alt proses tamamen aynı özelliklere sahip olmaktadır. Örneğin bu iki prosesin "etkin ve gerçek 
+    kullanıcı ve grup ID'leri", "çalışma dizinleri (current working directories), "açmış olduğu dosyalara ilişkin bilgiler" 
+    aynı olur.
+
+    2) Çekirdek alt proses için üst prosesin bellek alanının özdeş kopyasını oluşturur. Böylece her iki proses de içerik olarak 
+    aynı "kod" alanına, aynı "data" alanına, aynı "stack" alanına ve aynı "heap" alanına sahip olacaktır. Ancak bunlar 
+    birbirlerinden ayrıdır.
+
+    3) Yeni yaratılan alt proses çalışmaya fork fonksiyonunun içinden başlar. Her iki akış da (yani fork uygulayan prosesin 
+    akışı ve yeni yaratılan alt prosesin akışı da) fork içerisinden çıkar. Üst proses fork fonksiyonundan alt prosesin proses 
+    ID'si ile çıkarken alt proses 0 ile çıkmaktadır. 
+
+    Yukarıdaki işlemler fork fonksiyonunun içinde yapılmaktadır. fork fonksiyonundan hem bu fonksiyonu çağıran proses hem de 
+    yeni yaratılan proses çıkmaktadır. Ancak bunların bellek alanları ayrı olduğu için artık birinin yapacağı değişikliği diğeri 
+    görmeyecektir. fork fonksiyonu, bir klonlama yapmaktadır. Yeni bir prosesi, kendini çağıran prosesle aynı özelliklerle ve aynı 
+    bellek alanı ile yaratmaktadır. fork sırasında prosesin kontrol bloğu yeni yaratılan prosese kopyalandığı için üst proses ile 
+    alt proses aynı gerçek ve etkin kullanıcı ve grup ID'sine sahip olur. 
+
+    fork işlemini yapan proses üst proses (parent process) durumundadır. Yeni yaratılan proses ise alt proses (child process) 
+    durumundadır. Tabii alt proses yeni bir proses ID'ye sahip olacaktır. Alt prosesin üst prosesi, fork fonksiyonunu uygulayan 
+    proses olacaktır. 
+    
+    fork fonksiyonu başarısız olabilir. (Örneğin kaynak yetersizliği durumunda, kullanıcının proses yaratma limiti aşıldığı 
+    durumda fork başarısız olabilir.) fork başarısızlık durumunda -1 değerine geri dönmektedir.
+    
+    Peki yeni proses hangi noktada yaratılmaktadır? Tabii fork fonksiyonu içerisinde. Yukarıda da belirttiğimiz gibi yeni yaratılan 
+    prosesin (alt prosesin) akışı da fork fonksiyonun içerisinden başlatılacaktır. Bu durumda her iki proses de fork fonksiyonunun 
+    içerisinden çıkacaktır. İşte üst proses (yani fork işlemini yapan proses) "alt prosesin ID" değeri ile, alt proses ise "0 değeri 
+    ile" fork fonksiyonundan çıkar. Böylece programcı fork çıkışında üst proses ile alt prosese farklı işlemler yaptırabilmektedir. 
+    (Alt prosesin fork içerisinden 0 ile çıkması alt prosesin proses ID'sinin 0 olduğu anlamına gelmemektedir. Alt prosesin proses 
+    ID'si alt proses içerisinden getpid POSIX fonksiyonuyla elde edilebilmektedir.)
+
+    fork kullanımına ilişkin tipik kalıbı şöyledir:
+
+    pid_t pid;
+    /* ... */
+
+    if ((pid = fork()) == -1)
+        exit_sys("fork");
+    
+    if (pid != 0) {        /* parent process */
+        /* ... */
+    }
+    else {                /* child process */
+        /* ... */
+    }
+
+    Aşağıdaki örnekte fork fonksiyonu ile bir proses yaratılmış ve proses ID'ler üst ve alt proseslerde yazdırılmıştır. 
+    Bu örnekte üst proseste fork fonksiyonunun alt prosesin proses ID değeri ile geri döndüğüne dikkat ediniz. Denemenin 
+    yapıldığı makinede şöyle bir sonuç elde edilmiştir:
+
+    Parent PID: 110303
+    Parent's parent PID: 106380
+    fork return value: 110304
+    Common code...
+    Child PID: 110304
+    Child's parent PID: 110303
+    Common code...
+
+    Görüldüğü gibi alt prosesin üst proses ID'si ile üst prosesin proses ID'si aynıdır. Programı kabuk üzerinden çalıştırdığımız
+    için üst prosesin üst proses ID'si kabuk prosesinin (tipik olarak bash) proses ID'si olacaktır:
+
+    $ ps 
+         PID TTY        TIME CMD
+    106380 pts/2    00:00:00 bash
+    110308 pts/2    00:00:00 ps
+----------------------------------------------------------------------------------------------------------------------*/
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <unistd.h>
+
+void exit_sys(const char *msg);
+
+int main(void)
+{
+    pid_t pid;
+
+    if ((pid = fork()) == -1)
+        exit_sys("fork");
+
+    if (pid != 0) {        /* parent process */
+        printf("Parent PID: %jd\n", (intmax_t)getpid());
+        printf("Parent's parent PID: %jd\n", (intmax_t)getppid());
+        printf("fork return value: %jd\n", (intmax_t)pid);
+    }
+    else {                /* child process */
+        printf("Child PID: %jd\n", (intmax_t)getpid());
+        printf("Child's parent PID: %jd\n", (intmax_t)getppid());
+    }
+
+    printf("Common code...\n");
+
+    sleep(1);
+
+    return 0;
+}
+
+void exit_sys(const char *msg)
+{
+    perror(msg);
+    exit(EXIT_FAILURE);
+}
+
+/*----------------------------------------------------------------------------------------------------------------------
+    fork işleminde en fazla kafa karıştıran noktalardan biri fork fonksiyonundan iki akışın çıkması durumudur. Burada 
+    genellikle yeni öğrenenlerin gözden kaçırdığı birkaç nokta vardır:
+
+    1) fork sırasında fork işlemini yapan prosesin (yani üst prosesin) tüm bellek alanının (onun kod, data, stack ve heap)
+    alanlarının özdeş bir kopyası oluşturulmaktadır. Yani fork işlemini yapan prosesin kod, data, stack ve heap alanlarının 
+    hepsi alt proseste de bulunmaktadır. Örneğin:
+
+    if ((pid = fork()) == -1)
+        exit_sys("fork");
+
+    if (pid != 0) {
+        /* ... */
+    }
+    else {
+        /* ... */
+    }
+
+    Programcının yazdığı bu kodun fork sonrası hem üst proses hem de alt proses tarafından çalıştırılmaktadır. Yani bu kod 
+    hem üst proseste hem de alt proseste bulunacaktır. Bizim buradaki temel amacımız fork çıkışında kodu aynı olan iki farklı
+    prosese farklı şeyleri yaptırmaktır. İşte bunu fork fonksiyonunun geri dönüş değerini kontrol ederek sağlayabilmekteyiz. 
+
+    2) Yeni öğrenen kişilere iki prosesin de fork fonksiyonundan çıkması tuhaf gelebilmektedir. Aslında burada bir tuhaflık 
+    yoktur. Şöyle ki: Prosesin yaratılması ve bellek alanlarının kopyalanması zaten fork içerisinde yapılmaktadır. fork 
+    fonksiyonunu çağıran proses (üst proses) fork'tan çıkacaktır. Kopyası çıkartılan alt prosesin çalışması da fork içerisinden 
+    başlatılmaktadır. Bu durumda alt proses de fork fonksiyonundan çıkacaktır. Çatallanmanın fork içerisinde yapıldığına 
+    dikkat ediniz. 
+
+    Tabii fork fonksiyonundan çıkınca artık üst proses ile alt prosesin yaşamları farklı olabilmektedir. Örneğin üst proses 
+    bir global değişkenin değerini değiştirse alt proses bunu değişmiş olarak görmez. Çünkü o global değişkenin üst proseste 
+    ve alt proseste artık farklı kopyaları vardır. Üst proses kendi global değişkenini değiştirmektedir. Yani fork işleminden 
+    çıkıldığında üst ve alt prosesin her şeyi aynı olsa da artık bunlar kendi yollarına gideceklerdir. (Klon makinesinden 
+    çıkar çıkmaz iki kişinin her şeyi aynıdır. Ancak bundan sonra bu kişiler bağımsız kişiler oldukları için başlarına farklı 
+    olaylar gelecektir. Birisinin maruz kaldığı bir duruma diğeri maruz kalmayacaktır.)
+
+    Aşağıdaki örnekte fork işlemi sonrasında üst proses g_x global değişkenine yeni bir değer atamıştır. Sonra 
+    alt proseste bu global değişkenin değeri yazdırılmıştır. Tabii alt proses üst prosesin yaptığı bu değişikliği 
+    görmeyecektir. Çünkü aslında iki prosesin de bellek alanları tamamen fork içerisinde klonlama sırasında ayrıştırılmıştır. 
+----------------------------------------------------------------------------------------------------------------------*/
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+void exit_sys(const char *msg);
+
+int g_x = 10;
+
+int main(void)
+{
+    pid_t pid;
+
+    if ((pid = fork()) == -1)
+        exit_sys("fork");
+
+    if (pid != 0) {        /* parent process */
+        g_x = 100;
+    }
+    else {                /* child process */
+        sleep(1);
+        printf("%d\n", g_x);    /* 10 */
+    }
+
+    printf("Common code...\n");
+
+    sleep(1);
+
+    return 0;
+}
+
+void exit_sys(const char *msg)
+{
+    perror(msg);
+    exit(EXIT_FAILURE);
+}
+
+/*----------------------------------------------------------------------------------------------------------------------
+    fork işleminde yeni proses yaratıldığında hangi proses akışının fork fonksiyonundan önce çıkacağının bir garantisi 
+    yoktur. Bu işletim sisteminin çizelgeleme algoritmalarına bağlı olarak değişebilmektedir. 
+----------------------------------------------------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------------------------------------------------
+    Aşağıdaki örnekte "Common Code" yazısı 8 kez ekranda görünecektir:
+  
+    fork();
+    fork();
+    fork();
+
+    printf("Common code...\n");
+    
+    Çünkü ilk fork işleminden sonra ikinci fork işlemini 2 proses yapacaktır. Böylece ikinci fork işleminden sonra aynı koda 
+    sahip 4 proses oluşacaktır. Sonra bu 4 proses de üçüncü fork işlemini yapacaktır. O halde üçüncü fork işleminden toplam 
+    8 proses çıkacaktır. Buradaki sleep fonksiyonunu neden çağırdığımıza takılmayınız. Kod karmaşık olmasın diye fork 
+    çağrılarının geri dönüş değerlerini kontrol etmedik. Ancak uygulamada kontrol etmelisiniz. Programı çalıştırdığımızda 
+    fork şöyle bir çıktı elde edeceğiz:
+
+    Common code...
+    Common code...
+    Common code...
+    Common code...
+    Common code...
+    Common code...
+    Common code...
+    Common code...
+----------------------------------------------------------------------------------------------------------------------*/
+
+#include <stdio.h>
+#include <unistd.h>
+
+int main(void)
+{
+    fork();
+    fork();
+    fork();
+
+    printf("Common code...\n");
+    sleep(1);
+
+    return 0;
+}
+
+/*----------------------------------------------------------------------------------------------------------------------
+    UNIX türevi sistemlerde bir alt fork fonksiyonuyla yaratıldıktan sonra o alt proses sonlanana kadar bloke beklemek 
+    için wait fonksiyonları denilen POSIX fonksiyonları kullanılmaktadır. Bu wait fonksiyonları hem alt prosesin sonlanmasını 
+    beklemekkte hem de o alt prosesin çıkış kodunu (exit code) elde etmektedir. POSIZ standartlarında iki wait fonlsiyonu 
+    vardır:
+
+    #include <sys/wait.h>
+
+    pid_t wait(int *wstatus);
+    pid_t waitpid(pid_t pid, int *wstatus, int options);
+
+    Ancak Linux sistemlerinde alt prosesin kullandığı kaynaklar hakkında bilgiler de veren wait3 ve wait4 isimli 
+    fonksiyonlar da bulunmaktadır:
+
+    pid_t wait3(int *status, int options, struct rusage *rusage);
+    pid_t wait4(pid_t pid, int *status, int options, struct rusage *rusage);
+
+    Kullanıcı modunda fork ile bir alt proses yaratıldığında onun wait fonksiyonlarıyla beklenmesi önerilmektedir. 
+    Bz bu wait fonksiyonlarının ayrıntılarına burada girmeyeceğiz. Bunları zaten "UNix/Linux Sistem Programlama" 
+    
+    kursunda görmüştük. Aşağıda bir alt proses yaratıp onun wait fonksiyonalrıyla beklenmesine bir örnek veriyoruz.
+----------------------------------------------------------------------------------------------------------------------*/
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+void exit_sys(const char *msg);
+
+int main(void)
+{
+    pid_t pid;
+    int status;
+    int ecode;
+
+    if ((pid = fork()) == -1)
+        exit_sys("fork");
+
+    if (pid == 0) {     /* child process */
+        for (int i = 0; i < 10; ++i) {
+            printf("child running: %d\n", i);
+            sleep(1);
+        }
+        exit(100);
+    }
+
+    if (waitpid(pid, &status, 0) == -1)
+        exit_sys("waitpid");
+
+    if (WIFEXITED(status)) {
+        ecode = WEXITSTATUS(status);
+        printf("child exit code: %d\n", ecode);
+    }
+    printf("parent continues...\n");
+
+    return 0;
+}
+
+void exit_sys(const char *msg)
+{
+    perror(msg);
+    exit(EXIT_FAILURE);
+}
+
+/*----------------------------------------------------------------------------------------------------------------------
+    UNIX türevi sistemlerde anımsanacağı gibi ismine "zombie" proses denilen önemli bir kavram vardır. Bir alt proses 
+    fork fonksiyonu ile yaratıldığında üst proses onun çıkış kodunu wait fonksiyonlarıyla almamışsa çekirdek "her an 
+    üst proses benden alt prosesin çıkış kodunu isteyebilir" diye prosesin kontrol bloğunu (Linux'taki task_struct)
+    ve dolayıısya PID değerini serbest bırakmamaktadır. Prosesin çıkış kodu izleyen bölümlerde de göreceğimiz gibi 
+    Linux sistemlerinde task_struct nesnesi içersinde saklanmaktadır. İşte alt proses yaratılıp üst proses wait 
+    fonksiyonlarıyla alt prosesin çıkış kodunu almazsa "kendisi bitmiş ama kontrol bloğu yaşayan" bir proses durumu
+    oluşmaktadır. Buna "zombie" proses denilmektedir. Bir program binlerce fork işlemi yapıyorsa ama onları wait 
+    fonksiyonlarıyla beklemiyorsa sistemde çok sayıda zombie proses oluşur, sistem kaynakları da /en azında PID değerleri 
+    de) tükenme noktasına gelebilir. Bu nedenle wait fonksiyonlarının uygulanması krik önemdedir. Ancak wait fonksiyonları 
+    üst prosesi de beklettiği için bazı uygulamalarda bu durum da arzu edilmeyebilir. Bu tür durumlarda "zombie" oluşumunun 
+    otomatik olarak engellenmesi gerekir. Bunun UNIX türevi sistemlerde tipik olarak iki yolu vardır:
+
+    1) Alt proses sonlandığında üst prosese gönderdiği SIGCHILD sinyali yoluyla.
+    2) Baştan çekirdeğe "ben proses yaratıyorum ama bunun çıkış kodunu almayacağım" demek suretiyle. Bu durumda çekirdek
+    alt proses sonlandığında onun proses kontrol bloğu dahil olmak üzere bütün kaynaklarını boşaltmaktadır. 
+
+    Peki üst proses alt prosesten önce sonlanırsa ne olur? İşte üst prosesi sonlanmış olan alt proseslerew öksüz (orphan)" 
+    prosesler denilmektedir. Bir proses öksüz hale gelince çekirdek prosesin üst prosesi olarak 1 numaralı PID'ye sahip 
+    olan "init" prosesini atamaktadır. "init" prosesi de alt proses sonlandığında onun kaynaklarını boşaltmaktadır. 
+    Yani üst proses önce sonlanırsa zombie durumu oluşmamaktadır. Zombie durumu "üst proses ve alt proses devam ederken, 
+    alt proses sonlandığı halde üst prosesin wait uygulamaması süreci içerisinde" oluşmaktadır. Alt prosesin sonlandığınu
+    ve üst prosesin de wait uygulamadan sonlandığını varsayalım. Bu durumda da zombie'lik "init" prosesi tarafından 
+    ortadan kaldırılmaktadır. 
+----------------------------------------------------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------------------------------------------------
+    Tek başına fork işlemi eskiden thread'ler yokken bir işi birden fazla akışa yaptırmak için kullanılabiliyordu. 
+    Ancak artık tek başına fork uygulamanın bir anlamı kalmamıştır. Bu nedenle fork işlemini exec işlemleri izlemktedir. 
+    exec fonksiyonları çalışmakta olan programın bellek alanını ortadan kaldırıp yenş bir program dosyasını yükleyerek 
+    prosesisn çalışmasına başka bir programla devam etmesini sağlamaktadır. POSIX standartlarında 7 parametrik yapıları 
+    farklı olan 7 exec fonksiyonu bulunmaktadır:
+
+    execl
+    execle
+    execlp
+    execv
+    execve
+    execvp
+    fexecve
+    
+    Ayrıca POSIX standartlarında tanımlı olmasa da GNU C kütüphanesinde execvpe isimli bir exec fonksiyonu da bulunmaktadır. 
+    (Bu fonksiyon "glibc" kütüphanesinde olduğu için bu kütüphanenin kullanıldığı BSD gibi diğer UNIX türevi sistemlerde 
+    de bulunmaktadır. Ayrıca Linux sistemlerine özgü bir biçimde sys_execveat isimli bir fonksiyonu da bulunmaktadır. 
+    Linux'ta bu fonksiyon execveat ismiyle kullanılabilmektedir.)
+
+    Biz genel olarak bu fonksiyonlara "exec fonksiyonları" diyeceğiz. 
+
+    exec çağrısı başarılı olduğunda artık mevcut programın bellek alanı tamamen ortadan kaldırılmıştır. Onun yerine 
+    başka bir program dosyası yüklenip o program çalıştırılmaktadır. Dolayısıyla başarı durumunda exec fonksiyonları 
+    geri dönmemektedir. 
+
+    Görüldüğü gibi tek başına fork işlemi bir prosesin ödeş kopyasını oluşturmaktadır, tek başına exec işlemi de mevcut 
+    programın ortadan laldırılıp başka bir programın çalışmasına yol açmaktadır. O halde hem kendi programımız devam 
+    etsin hem de başka ir program çalışsın istiyorsak fork ve exec çağrılarını birlikte kullanmalıyız Buna fork/exec 
+    kalıbı denilmektedir. fork/exec kalıbı şöyedir:
+
+    pid_t pid;
+    /* ... */
+
+    if ((pid = fork()) == -1)
+        exit_sys("fork");
+    if (pid == 0) {
+        if (exec(....) == -1) 
+            exit_sys("exec");
+    }
+    /* bu akışa yalnızca üst proses ulaşır */
+
+    Burada fork ile alt proses yaratılmış ve alt proseste exec uygulanmıştır. Yukarıdaki kalıp && operatörünün kısa 
+    devre özelliği ile aşağıdaki hale de dönüştürülebilir;:
+
+    pid_t pid;
+    /* ... */
+
+    if ((pid = fork()) == -1)
+        exit_sys("fork");
+    if (pid == 0 && exec(....) == -1) 
+        exit_sys("exec");
+    /* bu akışa yalnızca üst proses ulaşır */
+
+    Bazı programcılar exec fonksiyonunu şöyle ele almaktadır:
+
+     if ((pid = fork()) == -1)
+        exit_sys("fork");
+    if (pid == 0) {
+        exec(....);
+        exit_sys("exec");       /* akışın buraya gelebilmesi için exec işleminin başarısız olması gerekir */
+    }
+
+    Burada exec başarılıysa zaten kod ortadan kalkacaktır, exec başarısız olduğunda akış aşağıya geçecektir. 
+
+    Örneğin kabukta bir programı çalıştırırken kabuk programı önce fork yapar, alt proseste bizim belirttiğimiz
+    programı exec yapar. UNIX türevi sistemlerde mevcut programın devam etmesini sağlayıp başka bir programı 
+    çalıştırmanın başka bir yolu yoktur. 
+----------------------------------------------------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------------------------------------------------
+    fork POSIX fonksiyonu Linux sistemlerinde sys_fork ya da sys_clone sistem fonksiyonlarını çağırarak gerçekleştirilmektedir. 
+    Linux sistemlerinde daha genel olan sistem fonksiyonu sys_clone isimli sistem fonksiyonudur. sys_fork sistem 
+    fonksiyonu aslında sys_clone fonksiyonu ile ortak kodu çağırmaktadır. Yani aslında Linux sistemlerinde taban 
+    taban sistem fonksiyonu sys_clone isimll fonksiyondur. 
+----------------------------------------------------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------------------------------------------------
+    Thread'ler kullanıcı modunda "pthread" denilen POSIX kütüphanesi yoluyla yaratılmaktadır. "pthread" kütüphanesindeki 
+    tüm thread fonksiyonlarının basış pthread_ ile başlatılmaktadır. Thread'ler pthread_create isimli POSIX fonksiyonula 
+    yaratılmaktadır:
+
+    #include <pthread.h>
+
+    int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg);
+
+    Fonksiyonun birinci parametresi yaratılacak thread'i temsil eden thread ID değerinin yerleştirileceği pthread_t 
+    türünden nesnenin adresini almaktadır. Thread ID değerleri sistem genelinde değil proses genelinde "tek (unique)" 
+    değer belirtmektedir. pthread_t türü herhangi bir olarak (yapı da dahil olmak züere) typedef edilmiş olabilir. 
+    pthread_t türü hem <pthread.h> dosyasında hem de <sys/types.h> dosyasında typedef edilmiş olmak zorundadır. 
+    ikinci parametresi thread yaratım özelliklerini belirtmektedir. Bu parametreye NULL adres geçilebilir. Bu durumda 
+    thread default özelleiklerle yaratılmaktadır. Fonksiyonun üçüncü parametresi thread akışının başlatılacağı fonksiyonun 
+    adresini almaktadır. Thread fonksiyonlarının geri dönüş değerleri ve parametreleri void * türünden olmak zorundadır. 
+    Son parametre ise thread fonksiyonuna geçirilecek argümanı belirtmektedir. Eğer thread fonksiyonuna bir argüman 
+    geçirilmeyecekse bu parametreye NULL adres geçirilebilir. 
+
+    POSIX'in pthread kütüphanesindeki fonksiyonalrın hiçbiri errno değişkeninin set etmemektedir. Bu fonksiyonlar genel 
+    olarak başarı durumunda 0 değerine başarısızlık durumunda errno değeirinn kendisine geri dönmektedir. 
+    
+    Tipik bir thread yaratımı şöyle yapılabilir:
+
+    pthread_t tid;
+    int result;
+    /* ... */
+
+    if ((result = pthread_create(&tid, NULL, thread_proc, NULL)) != 0) {
+        printf("pthread_create: %s\n", strerror(result));
+        exit(EXIT_FAILURE);
+    }
+
+    Zombie durumu thread'ler için de söz konusudur. Thread'leri beklemek için pthread_join fonksiyonu kullanılmaktadır:
+
+    #include <pthread.h>
+    
+    int pthread_join(pthread_t thread, void **retval);
+
+    Fonksiyonun birinci parametresi beklenecek thread'in ID değerini ikinci parametresi thread fonksiyonun geri döndürdüğü
+    adresin yerleştirileceği göstricisinin adresini almaktadır. Bu ikinci parametre NULL adres geçilebilir. Bu duurmda 
+    fonksiyon thread'in çıkış kodunu vermez. Fonksiyon başarı durumunda 0 değerine, başarısızlık durumunda erno değerine 
+    geri dönmektedir. Örneğin:
+
+    pthread_t tid;
+    int result;
+    /* ... */
+
+    if ((result = pthread_create(&tid, NULL, thread_proc, NULL)) != 0) {
+        printf("pthread_create: %s\n", strerror(result));
+        exit(EXIT_FAILURE);
+    }
+
+    /* ... */
+
+    if ((result = pthread_join(tid, NULL)) != 0) {
+        printf("pthread_join: %s\n", strerror(result));
+        exit(EXIT_FAILURE);
+    }
+----------------------------------------------------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------------------------------------------------
+    Proses ve thread yaratımı hakkında temel anımsatmaları yaptıktan sonra şimdi çekirdeğin bu işlemleri nasıl yaptığı 
+    üzerinde duralım. Bir proses fork ile yaratılırken çekirdek ne yapaktadır? Thread yaratımı ile proses yaratımı 
+    arasında farklılıklar ve benzerlikler nelerdir? Proseslerin ve thread'lerin çıkış kodları nerede saklanıp üst prosese 
+    ya da yaratımı yapan thread'e nasıl iletilmektedir? Bölüm içerisinde bu tür soruların yanıtlarını vermeye çalışacağız. 
 ----------------------------------------------------------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------------------------------------------------------
 
 ----------------------------------------------------------------------------------------------------------------------*/
 
-/*----------------------------------------------------------------------------------------------------------------------
 
-----------------------------------------------------------------------------------------------------------------------*/
-
-/*----------------------------------------------------------------------------------------------------------------------
-
-----------------------------------------------------------------------------------------------------------------------*/
-
-/*----------------------------------------------------------------------------------------------------------------------
-
-----------------------------------------------------------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------------------------------------------------------
                                                 GEÇİCİ NOTLAR
-----------------------------------------------------------------------------------------------------------------------*/
-
-
-/*----------------------------------------------------------------------------------------------------------------------
-
-----------------------------------------------------------------------------------------------------------------------*/
-
-/*----------------------------------------------------------------------------------------------------------------------
-
-----------------------------------------------------------------------------------------------------------------------*/
-
-/*----------------------------------------------------------------------------------------------------------------------
-
-----------------------------------------------------------------------------------------------------------------------*/
-
-/*----------------------------------------------------------------------------------------------------------------------
-
-----------------------------------------------------------------------------------------------------------------------*/
-
-/*----------------------------------------------------------------------------------------------------------------------
-
-----------------------------------------------------------------------------------------------------------------------*/
-
-/*----------------------------------------------------------------------------------------------------------------------
-
-----------------------------------------------------------------------------------------------------------------------*/
-
-/*----------------------------------------------------------------------------------------------------------------------
-
 ----------------------------------------------------------------------------------------------------------------------*/
 

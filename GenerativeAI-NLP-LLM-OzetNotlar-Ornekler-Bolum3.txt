@@ -18,7 +18,7 @@
                     (Notları sabit genişlikli font kullanan programlama editörleri ile açınız.)
                         (Editörünüzün "Line Wrapping" özelliğini pasif hale getiriniz.)
                                                             
-                                  Son Güncelleme Tarihi: 26/09/2026 - Cumartesi
+                                  Son Güncelleme Tarihi: 05/10/2026 - Pazartesi
                                          
 #---------------------------------------------------------------------------------------------------------------------------
 
@@ -767,11 +767,12 @@ print(result)
     1) İşlemlere başlarken öncelikle bir model nesnesi oluşturulmalıdır. tensorflow.keras modülü içerisinde çeşitli model 
     sınıfları bulunmaktadır. En çok kullanılan model sınıfı Sequential isimli sınıftır. Keras'ta tüm model sınıfları Model 
     isimli sınıftan türetilmiştir. Sequential modelde ağa her eklenen katman sona eklenir. Böylece ağ katmanların sırasıyla 
-    eklenmesi yoluyla oluşturulur. Sequential nesnesi yaratılırken name parametresiyle modele bir isim de verilebilir. Örneğin:
+    eklenmesi yoluyla oluşturulur. Sequential nesnesi yaratılırken name parametresiyle modele bir isim de verilebilir. 
+    Verilen ismin boşluk karakteri içermemesi gerekmektedir. Örneğin:
 
     from tensorflow.keras import Sequential
 
-    model = Sequential(name='Test Model')
+    model = Sequential(name='TestModel')
 
     Aslında Sequential nesnesi yaratılırken katmanlar belirlendiyse layers parametresiyle bu katmanlar da verilebilmektedir. 
     Ancak sınıfın tipik kullanımında katmanlar daha sonra izleyen maddelerde ele alınacağı gibi sırasıyla eklenmektedir.
@@ -857,7 +858,7 @@ print(result)
     )
 
     Her katmana istersek name parametresi ile bir isim de verebiliriz. Bu isimler model özeti alınırken ya da katmanlara erişilirken 
-    kullanılabilmektedir. Örneğin:
+    kullanılabilmektedir. Ancak verilen isimlerib boşluk karakterlerini içermemesi gerekir. Örneğin:
 
     input_layer = Input((10, ), name='Input')
     dense_layer = Dense(64, activation='relu', name='Dense-1')
@@ -878,7 +879,7 @@ print(result)
     Şimdi modelden tek çıkış elde etmek için modele 1 nöronluk bir çıktı katmanı da ekleyelim:
 
 
-    model = Sequential(name='Test Model')
+    model = Sequential(name='TestModel')
     model.add(Input((10, ), name='Input'))
     model.add(Dense(64, activation='relu', name='Dense-1'))
     model.add(Dense(1, activation='linear', name='Output'))
@@ -908,7 +909,7 @@ print(result)
 
     Yukarıdakimoel için oluşan görüntülenen şöyledir:
 
-    Model: "Test-Model"
+    Model: "TestModel"
     ┌─────────────────────────────────┬────────────────────────┬───────────────┐
     │ Layer (type)                    │ Output Shape           │       Param # │
     ├─────────────────────────────────┼────────────────────────┼───────────────┤
@@ -922,7 +923,7 @@ print(result)
 
     Şimdi Aşağıdaki modeli inceleyiniz:
 
-    model = Sequential(name='Test Model')
+    model = Sequential(name='l')
 
     model.add(Input((8, )))
     model.add(Dense(16, activation='relu', name='Hidden-1'))
@@ -933,7 +934,7 @@ print(result)
     B modelde bir girdi katmanı, iki saklı katman (biz bunlara ara katman da diyeceğiz) bir de çıktı katmanı vardır. 
     summary metodundan elde edilen çıktı şöyledir.
 
-    Model: "Test Model"
+    Model: "TestModel"
     ┌─────────────────────────────────┬────────────────────────┬───────────────┐
     │ Layer (type)                    │ Output Shape           │       Param # │
     ├─────────────────────────────────┼────────────────────────┼───────────────┤
@@ -1226,7 +1227,6 @@ print(result)
         validation_freq=1
     )
     
-    
     fit metodunun en önemli parametresi ilk iki parametre olan x ve y veri kümeleridir. Biz burada training_dataset_x ve 
     training_dataset_y verilerini fit metodunun ilk iki paramtresine geçirmeliyiz. fit metodunun diğer önemli bir parametresi 
     batch_size isimli parametredir. Eğitim işlemi aslında satır satır değil batch batch yapılmaktadır. batch bir grup satıra 
@@ -1239,59 +1239,87 @@ print(result)
     İkincisi ise "overfitting" denilen olumsuz durum için bir önlem oluşturmasıdır. Overfitting hakkında ileride açıklama 
     yapacağız.
 
-    <BURADA KALDIk>
-
-    fit metodunun diğer önemli parametresi de "epochs" isimli parametredir. eğitim veri kümesinin eğitim sırasında yeniden 
+    fit metodunun diğer önemli bir parametresi de "epochs" isimli parametredir. eğitim veri kümesinin eğitim sırasında yeniden 
     eğitimde kullanılmasına "epoch" işlemi denilmektedir. Örneğin elimizde 1000 satırlık bir eğitim veri kümesi olsun. batch_size 
     parametresinin de 20 olduğunu varsayalım. Bu durumda bu eğitim veri kümesi 1000 / 20 = 50 batch işleminde bitecektir. Yani 
     model parametreleri 50 kere ayarlanacaktır. Pek çok durumda eğitim veri kümesinin bir kez işleme sokulması model parametrelerinin
-    iyi bir biçimde konumlandırılması için yetersiz kalmaktadır. İşte eğitim veri kümesinin birden fazla kez yani fit metodundaki 
-    epochs sayısı kadar yeniden eğitimde kullanılması yoluna gidilmektedir. Peki epochs değeri ne olmalıdır? Aslında bunu 
-    uygulamacı belirler. Az sayıda epoch model parametrelerini yeterince iyi konumlandıramayabilir. Çok fazla sayıda epoch 
-    "overfitting" denilen olumsuz duruma zemin hazırlayabilir. Ayrıca çok fazla epoch eğitim zamanını da uzatmaktadır. Uygulamacı 
-    epoch'lar sırasında modelin davranışına bakabilir ve uygun epoch sayısında işlemi kesebilir. Eğitim sırasında Keras bizim 
-    belirlediğimiz fonksiyonları çağırabilmektedir. Buna Keras'ın "callback" mekanizması denilmektedir. Uygulamacı bu yolla model
-    belli bir duruma geldiğinde eğitim işlemini kesebilir. Ya da uygulamacı eğer eğitim çok uzamayacaksa yüksek bir epoch ile 
-    eğitimini yapabilir. İşlemler bitince epoch'lardaki performansa bakabilir. Olması gerekn epoch değerini kestirebilir. Sonra 
-    modeli yeniden bu sayıda epoch ile eğitir. fit metodunun shuffle parametresi her epoch'tan sonra eğitim veri kümesinin 
-    karıştırılıp karıştırılmayacağını belirtmektedir. Bu parametre default olarak True biçimdedir. Yani eğitim sırasında her 
-    epoch'ta eğitim veri kümesi karıştırılmaktadır. 
+    iyi bir biçimde konumlandırılması için yetersiz kalmaktadır. İşte eğitim veri kümesinin birden fazla kez (yani fit metodundaki 
+    epochs sayısı kadar) yeniden eğitimde kullanılması yoluna gidilmektedir. Peki epochs değeri ne olmalıdır? Epoch sayısı uygulamacı 
+    tarafından belirlenmektedir. Az sayıda epoch uygulamak model parametrelerini yeterince iyi konumlandıramayabilir. Çok fazla 
+    sayıda epoch uygulamak yanlış şeylerin öğrenilmesine yol açabilmektedir. Bu olgıya "overfitting" denilmektedir. Ayrıca çok 
+    fazla epoch eğitim zamanını da uzatmaktadır. Uygulamacı epoch'lar sırasında modelin davranışına bakabilir ve uygun epoch 
+    sayısında işlemi kesebilir. Eğitim sırasında Keras bizim belirlediğimiz fonksiyonları çağırabilmektedir. Buna Keras'ın "callback" 
+    mekanizması denilmektedir. Uygulamacı bu yolla model belli bir duruma geldiğinde eğitim işlemini kesebilir. Ya da uygulamacı 
+    eğer eğitim çok uzamayacaksa yüksek bir epoch ile eğitimini yapabilir. İşlemler bitince epoch'lardaki performansa bakabilir. 
+    Olması gerekn epoch değerini kestirebilir. Sonra modeli yeniden bu sayıda epoch ile eğitir. 
     
+    fit metodunun shuffle parametresi her epoch'tan sonra eğitim veri kümesinin karıştırılıp karıştırılmayacağını belirtmektedir. 
+    Bu parametre default olarak True biçimdedir. Yani her epoch'tan önce (ilk epoch dahil olmak üzere) eğitim veri kümesi 
+    karıştırılmaktadır. Epoch'lar arasında eğitim veri kümesinin karıştırılmaması eğitim sürecini olumsuz etkileyebilmektedir.
+    Aşağıdaki tabloda verinin durumuna göre karıştırmamanın yarattığı dezavantajlar belirtilmektedir:
+
+    ┌───────────────────────────────────┬──────────────────────────────────────┐
+    │               Durum               │                 Etki                 │
+    ├────────────────── ────────────────┼──────────────────────────────────────┤
+    │ Sıralı veri (etikete göre)        │ Ciddi sorun: salınım, kötü yakınsama │
+    │ Bir kez karıştırılmış, sabit sıra │ Genelde çalışır, biraz daha kötü     │
+    │ Her epoch yeniden karıştırma      │ Önerilen yöntem (random reshuffling) │
+    │ Zaman serisi / stateful RNN       │ Örnek içi sıra korunmalı             │
+    └───────────────────────────────────┴──────────────────────────────────────┘
     
-    Modelin fit metodu ile eğitilmesi sırasında "sınama (validation)" denilen önemli bir kavram daha devreye girmektedir. Sınama
+    Bazı veri kümelerinde veriler arasında öncelik-sonralık ilişkisi bulunabilmektedir. Bu tür veri kümelerine "zaman serisi 
+    (time series)" denilmektedir. Zaman serilerine ilişkin veri kümelerinin karıştırılmaması gerekir. 
+
+    Modelin fit metodu ile eğitilmesi sırasında "sınama (validation)" denilen önemli bir süreç daha devreye girmektedir. Sınama
     işlemi test işlemine benzemektedir. Ancak test işlemi tüm model eğitildikten sonra yapılırken sınama işlemi her epoch'tan 
     sonra modelin eğitim sürecinde yapılmaktadır. Başka bir deyişle sınama işlemi model eğitilirken yapılan test işlemidir. 
     Epoch'lar sırasında modelin performansı hakkında bilgi edinebilmek için sınama işlemi yapılmaktadır. Sınamanın yapılması 
     için fit metodunun validation_split parametresinin 0 ile 1 arasında oransal bir değer olarak girilmesi gerekir. Bu oransal 
-    değer eğitim veri kümesinin yüzde kaçının sınama için kullanılacağını belirtmektedir. Örneğin validation_split=0.2 eğitim 
-    veri kümesinin %20'sinin sınama için kullanılacağını belirtmektedir. fit metodu işin başında eğitim veri kümesini eğitimde 
-    kullanılacak kısım ile sınamada kullanılacak kısım biçiminde ikiye ayırmaktadır. Sonra her epoch'ta yalnızca eğitimde kullanılacak 
-    kümeyi karıştırmaktadır. Sınama işlemi aynı kümeyle her epoch sonrasında karıştırılmadan yapılmaktadır. fit metodunda ayrıca 
-    bir de validation_data isimli bir parametre vardır. Bu parametre sınama verilerini girmek için kullanılmaktadır. Bazen programcı 
-    sınama verilerinin eğitim veri kümesinden çekilip alınmasını istemez. Onu ayrıca fit metoduna vermek isteyebilir. Tabii 
-    validation_data parametresi girildiyse artık validation_split parametresinin bir anlamı yoktur. Bu parametre girilse bile 
-    artık fonksiyon tarafından dikkate alınmaz. Örneğin:
+    değer eğitim veri kümesinin yüzde kaçının sınama için kullanılacağını belirtmektedir. Örneğin validation_split=0.2 ise 
+    bu durum eğitim veri kümesinin %20'sinin sınama için kullanılacağını belirtmektedir. fit metodu işin başında eğitim veri 
+    kümesini eğitimde kullanılacak kısım ile sınamada kullanılacak kısım biçiminde ikiye ayırmaktadır. Sonra her epoch'ta 
+    yalnızca eğitimde kullanılacak kümeyi karıştırmaktadır. Sınama işlemi aynı kümeyle her epoch sonrasında karıştırılmadan 
+    yapılmaktadır. fit metodunda ayrıca bir de validation_data isimli bir parametre vardır. Bu parametre sınama verilerini 
+    girmek için kullanılmaktadır. Bazen programcı sınama verilerinin eğitim veri kümesinden elde edilmesini istemez. Onu ayrıca 
+    fit metoduna vermek isteyebilir. Tabii validation_data parametresi girildiyse artık validation_split parametresinin bir 
+    anlamı yoktur. Bu parametre girilse bile artık fonksiyon tarafından dikkate alınmaz. Örneğin:
 
-    model.fit(training_dataset_x, training_dataset_y, batch_size=32, epochs=100, validation_split=0.2)
+    hist = model.fit(training_dataset_x, training_dataset_y, batch_size=32, epochs=100, validation_split=0.2)
 
     validation_split parametresinin default değerinin 0 olduğuna dikkat ediniz. validation_split değerinin 0 olması epoch'lar 
-    sonrasında sınama işleminin yapılmayacağı anlamına gelmektedir. 
+    sonrasında sınama işleminin yapılmayacağı anlamına gelmektedir.
 
-    Peki modelin fit metodunda her epoch'tan sonra sınama işleminde hangi ölçümler ekrana yazdırılacaktır? İşte compile metodunda 
-    belirtilen ve ismine metrik fonksiyonlar denilen fonksiyonlar her epoch işlemi sonucunda ekrana yazdırılmaktadır. Her epoch 
-    sonucunda fit metodu şu değerleri yazdırmaktadır:
+    fit metodu History denilen bir sınıf nesnesi geri döndürmektedir. Bu nesnenin içerisinde her epoch'taki loss ve 
+    metrik değerler bulunmaktadır. Bu nesnnin nasıl kullanılacağını izleyen paragraflarde ele alacağız. 
+#---------------------------------------------------------------------------------------------------------------------------
 
-    - Epoch sonrasında elde edilen loss değerlerinin ortalaması
+#---------------------------------------------------------------------------------------------------------------------------
+                                            61. Ders 03/10/2026 - Cumartesi
+#---------------------------------------------------------------------------------------------------------------------------
+
+#---------------------------------------------------------------------------------------------------------------------------
+    Peki modelin fit metodunda her epoch'tan sonra sınama işleminde hangi ölçümler ekrana yazdırılacaktır ve bize verilecektir? 
+    İşte compile metodunda belirtilen ve ismine metrik fonksiyonlar denilen fonksiyonlar her epoch işlemi sonucunda ekrana 
+    yazdırılmaktadır ve uygulamacıya "history nesnesi" biçiminde verilmekted.r Her epoch sonucunda fit metodu şu değerleri 
+    yazdırmaktadır:
+
+    - Epoch sonrasında  sonrasında eğitim veri kümesinin kendisi için elde edilen loss değerlerinin ortalaması. 
     - Epoch sonrasında eğitim veri kümesinin kendisi için elde edilen metrik değerlerin ortalaması
     - Epoch sonrasında sınama için kullanılan sınama verilerinden elde edilen loss değerlerinin ortalaması
     - Epoch sonrasında sınama için kullanılan sınama verilerinden elde edilen metrik değerlerin ortalaması
 
-    Bir epoch işleminin batch batch yapıldığını anımsayınız. Bu durumda epoch sonrasında fit tarafından ekrana yazdırılan değerler
-    bu batch işlemlerden elde edilen ortalama değerlerdir. Yani örneğin her batch işleminden bir loss değeri elde edilir. Sonra 
-    bu loss değerlerinin ortalaması hesap edilerek yazdırılır. Eğitim veri kümesindeki değerler ile sınama veri kümesinden elde 
-    edilen değerler birbirine karışmasın diye fit metodu sınama verilerinden elde edilen değerlerin başına "val_" öneki getirmektedir. 
-    Örneğin biz ikili sınıflandırma problemi üzerinde çalışıyor olalım ve metrik fonksiyon olarak "binary_accuracy" kullanmış 
-    olalım. fit metodu her epoch sonrasında şu değerleri ekrana yazdıracaktır:
+    Loss değerleri ve metrik değerler her batch için yeniden hesaplanıp onların ortalaması alınmaktadır. Örneğin bir epoch 
+    50 batch olsun. Her batch girdi yapılıp ondan elde edilen loss değerleri biriktirilip onların ortalaması epoch bittiğinde 
+    kullanılmakta ve uygulamacıya verilmektedir. Buradaki ortalama aslında oğırlıklı ortalamadır. Çünkü son batch'te daha az 
+    örnek kalabilmektedir. (Örneğin batch_size = 32 olsun. Veri kümesindeki veri miktarı 32'ye tam bölünmüyorsa son epoch 
+    32'den küçük veri içerecektir.) Metrik değerler için Keras sayaçlar tutup her epcoh'ta bu sayaçları artırıp en sonunda 
+    örnek sayısına bölerek ortalama hesaplamaktadır. Bu düreçte hem eğitimde kullanılan veriler için hem de sınama veri 
+    kümesi için loss ve metirk değerler hesaplanmaktadır.
+
+    Eğitim veri kümesindeki değerler ile sınama veri kümesinden elde edilen değerler birbirine karışmasın diye fit metodu 
+    sınama verilerinden elde edilen değerlerin başına "val_" öneki getirmektedir. Örneğin biz ikili sınıflandırma problemi 
+    üzerinde çalışıyor olalım ve metrik fonksiyon olarak "binary_accuracy" kullanmış olalım. fit metodu her epoch sonrasında 
+    şu değerleri ekrana yazdıracaktır:
 
     loss (eğitim veri kümesinden elde edilen ortalama loss değeri)
     binary_accuracy (eğitim veri kümesinden elde edilen ortalama metrik değer)
@@ -1318,16 +1346,623 @@ print(result)
     ortalama isabet yüzdesini ve val_binary_accuracy ise epoch sonrasında sınama verilerinden elde edilen ortalama isabet 
     yüzdesini belirtmektedir.
 
-    Eğitim sırasında eğitim veri kümesindeki başarının sınama veri kümesinde görülmemesi eğitimin kötü bir yöne gittiğine işaret 
-    etmektedir. Örneğin ikili sınıflandırma probleminde epoch sonucunda eğitim veri kümesindeki binary_accuracy değerinin %99 
-    olduğunu ancak val_binary_accuracy değerinin %65 olduğunu düşünelim. Bunun anlamı ne olabilir? Bu durum aslında epoch'lar 
-    sırasında modelin bir şeyler öğrendiği ama bizim istediğimiz şeyleri öğrenemediği anlamına gelmektedir. Çünkü eğitim veri 
-    kümesini epoch'larla sürekli bir biçimde gözden geçiren model artık onu ezberlemiştir. Ancak o başarıyı eğitimden bağımsız 
-    bir veri kümesinde gösterememektedir. İşte bu olguya "overfitting" denilmektedir. Yanlış bir şeyin öğrenilmesi bir şeyin 
-    öğrenilememesi kadar kötü bir durumdur. Overfitting oluşumunun çeşitli nedenleri vardır. Ancak overfitting epoch'lar 
-    dolayısıyla oluşuyorsa epoch'ları uygun bir noktada kesmek gerekir. 
+    Eğitim sırasında eğitim veri kümesindeki başarının sınama veri kümesinde görülmemesi eğitimin kötü bir yöne gittiğine 
+    işaret etmektedir. Örneğin ikili sınıflandırma probleminde epoch sonucunda eğitim veri kümesindeki binary_accuracy 
+    değerinin %99 olduğunu ancak val_binary_accuracy değerinin %65 olduğunu düşünelim. Bunun anlamı ne olabilir? Bu durum 
+    aslında epoch'lar sırasında modelin bir şeyler öğrendiği ama bizim istediğimiz şeyleri öğrenemediği anlamına gelmektedir. 
+    Çünkü eğitim veri kümesini epoch'larla sürekli bir biçimde gözden geçiren model artık onu ezberlemiştir. Ancak o başarıyı 
+    eğitimden bağımsız bir veri kümesinde gösterememektedir. İşte bu olguya "overfitting" denilmektedir. Yanlış bir şeyin 
+    öğrenilmesi bir şeyin öğrenilememesi kadar kötü bir durumdur. Overfitting oluşumunun çeşitli nedenleri vardır. Ancak 
+    overfitting epoch'lar dolayısıyla oluşuyorsa epoch'ları uygun bir noktada kesmek gerekir. 
+#---------------------------------------------------------------------------------------------------------------------------
+
+#---------------------------------------------------------------------------------------------------------------------------
+    fit işleminden sonra artık model eğitilmiştir. Onun test veri kümesiyle test edilmesi gerekir. Bu işlem Sequential sınıfının 
+    evaluate isimli metodu ile yapılmaktadır. evaluate metodunun parametrik yapısı şöyledir:
+
+    evaluate(
+        x=None,
+        y=None,
+        batch_size=None,
+        verbose='auto',
+        sample_weight=None,
+        steps=None,
+        callbacks=None,
+        return_dict=False,
+        **kwargs
+    )
+    
+    evaluate metodunun ilk iki parametresi test_dataset_x ve test_dataset_y değerlerini almaktadır. Bu metodun da batch_size 
+    parametresi vardır. Buradaki batch_size parametresi eğitim işlemi yapılırken fit metodunda kullanılan batch_size  parametresinden 
+    işlevsel olarak farklıdır. Model test edilirken test işlemi de birer birer değil batch batch yapılabilmektedir. Ancak bu 
+    batch'ler arasında herhangi bir şey yapılmamaktadır. (Eğitim sırasındaki batch işlemleri sonrasında ağ parametrelerinin 
+    ayarlandığını anımsayınız. Test işlemi sırasında böyle bir ayarlama yapılmamaktadır.) Buradaki batch değeri yalnızca işlemlerin 
+    hızlı yapılması üzerinde etkili olmaktadır. Yine batch_size parametresi girilmezse bu değer default 32 alınmaktadır. 
+    evaluate metodu bir liste geri döndürmektedir. Listenin ilk elemanı test veri kümesinden elde edilen loss fonksiyonunun 
+    değeridir. Diğer elemanları da sırasıyla metrik olarak verilen fonksiyonların değerleridir. Örneğin:
+
+    eval_result = model.evaluate(test_dataset_x, test_dataset_y)
+
+    Burada eval_result değişkeni yukarıdaki örneğimizde aşağıdaki görünümde iki elemanlı bir liste olacaktır:
+
+    [0.9650349617004395, 0.4678175151348114]
+    
+    Keras'ın 3'lü versiyonlarıyla birlikte evaluate metoduna return_dict parametresş eklenmiştir. Bu parametrenin default değeri 
+    False biçimdedir. Eğer bu parametre True girilirse bu durumda evaluate metodu bir liste yerine bir sözlük geri dmndirmektedir. 
+    Sözlüğün anahtarları ilgili değerin isminden, değerleri ise onun değerlerindne oluşmaktadır. Örneğin:
+
+    eval_result = model.evaluate(test_dataset_x, test_dataset_y, return_dict=True)
+
+    Artık eval_result bir sözlüktür. Bu sözlüğün 'loss' anahtarında loss değeri metrik isimlere ilişkin anahtarlarında 
+    ilgili metrik değerler bulunmaktadır. Örneğin:
+    
+    {'binary_accuracy': 0.9650349617004395, 'loss': 0.4678175151348114}
+
+    Biz de metirk değerleri isimleriyle şöyle yazdırabiliriz:
+
+    for name, value in eval_result.items():
+        print(f'{name}: {value}')
+
+    Buradan aşağıdakine benzer bir çıktı elde edilecektir:
+
+    binary_accuracy: 0.9650349617004395
+    loss: 0.4678175151348114
+#---------------------------------------------------------------------------------------------------------------------------
+
+#---------------------------------------------------------------------------------------------------------------------------
+    Artık model test de edilmiştir. Şimdi sıra "kestirim (prediction)" yapmaya gelmiştir. Kestirim işlemi için Sequential
+    sınıfının predict metodu kullanılmaktadır. Biz bu metoda girdi katmanına uygulanacak özelliklerin (yani satırların) 
+    değerlerini veriririz, predict metodu da bize çıktı katmanındaki nöronların değerlerini verir. predict metoduna biz 
+    her zaman iki boyutlu bir NumPy dizisi vermeliyiz. Çünkü predict metodu tek hamlede birden çok satır için kestirim 
+    yapabilmektedir. Biz predict metoduna bir satır verecek olsak bile onu iki boyutlu bir matris biçiminde vermeliyiz. 
+    Örneğin:
+
+    import numpy as np
+ 
+    predict_dataset = np.array([[2 ,90, 68, 12, 120, 38.2, 0.503, 28],
+                            [4, 111, 79, 47, 207, 37.1, 1.39, 56],
+                            [3, 190, 65, 25, 130, 34, 0.271, 26],
+                            [8, 176, 90, 34, 300, 50.7, 0.467, 58],
+                            [7, 106, 92, 18, 200, 35, 0.300, 48]])
+
+    predict_result = model.predict(predict_data)
+    print(predict_result)
+
+    predict metodu bize tahmin edilen değerleri iki boyutlu bir NumPy dizisi biçiminde vermektedir. Bunun nedeni aslında ağın 
+    birden fazla çıktısının (yani çıktı katmanında birden fazla nöronun) olabilmesidir. Örneğin ağın bir çıktısı varsa bu 
+    durumda predict metodu bize "n tane satırdan 1 tane sütundan" oluşan bir matris, ağın iki çıktısı varsa "n tane satırdan 
+    2 iki tane sütundan oluşan bir matris verecektir. O halde örneğin çıktı olarak tek nöronun bulunduğu bir ağda biz kestirim 
+    değerlerini şöyle yazdırabiliriz:
+
+    for i in range(len(predict_result)):
+        print(predict_result[i, 0])
+
+    Ya da şöyle yazdırabiliriz:
+
+    for result in predict_result[:, 0]:
+        print(result)
+
+    Tabii iki boyutlu diziyi NumPy'ın flatten metoduyla ya da ravel metoduyla tek boyutlu hale getirerek de yazırma işlemini 
+    yapabilirdik:
+
+    for val in predict_result.flatten():
+        print(val)
+
+    predict metodu bize ağın çıktı değerini vermektedir. Eğer ağ bir regresyon problemi için oluşturulmuşsa bu çıktılar 
+    doğrudan kestirilen değerleri belirtir. Eğer ağ ikili sınıflandırma problemi için oluşturulmuşsa bu çıktılar sigmoid 
+    fonksiyonun verdiği değerlerdir. Bu durumda kestirim 0.5 değeri referans alınarak yapılır. 
+#---------------------------------------------------------------------------------------------------------------------------
+
+#---------------------------------------------------------------------------------------------------------------------------
+    Şimdi yukarıda işlemleri uygulayacağımız bir örnek üzerinde çalışalım. "Wisconsin Breast Cancer" veri kümesi birtakım 
+    biyomedikal tetkik sonuçlarına göre kitlenin iyi huylu meme kanserine mi yoksa kötü huylu mem kanserine mi ilişkin olduğunun
+    kestirilmesi için oluşturulmuş bir veri kümesidir. Veri kümesi aşağıdaki bağlantıdan indirilebilir:
+
+    https://archive.ics.uci.edu/dataset/17/breast+cancer+wisconsin+diagnostic
+
+    Buradan indirilen ".zip" dosyasının içerisinde iki dosya bulunmaktadır: "wdbc.data", "wdbc.names". Burada "wdbc.data"
+    dosyası her ne kadar uzantısı ".data" biçiminde olsa da aslında bir CSV dosyasıdır. Orijinal dosyanın başında bir 
+    başlık kısmı yoktur. Aşağıdaki başlığı dosyanın başına ekleyebilirsiniz:
+
+    id,diagnosis,radius_mean,texture_mean,perimeter_mean,area_mean,smoothness_mean,compactness_mean,concavity_mean,
+    concave points_mean,symmetry_mean,fractal_dimension_mean,radius_se,texture_se,perimeter_se,area_se,smoothness_se,
+    compactness_se,concavity_se,concave points_se,symmetry_se,fractal_dimension_se,radius_worst,texture_worst,
+    perimeter_worst,area_worst,smoothness_worst,compactness_worst,concavity_worst,concave points_worst,
+    symmetry_worst,fractal_dimension_worst
+
+    İlk iki sütun sırasıyla "id" ve "diagnosis" belirtmektedir. "id" sütununun kestirimde bir etkisi yoktur, bu sütun 
+    atılabilir. "diagnosis" sütunu "M (maling)" ya da "B (benign)" olmak üzere iki etikete sahiptir. Biz aşağıdaki 
+    örnekte dosyayı orijinal haliyle başlıksız bir biçimde kullanacağız. Okuma işlemi şöyle yapılabiliriz:
+
+    df = pd.read_csv('../Data/wdbc.data', header=None)
+    dataset_x = df.iloc[:, 2:]
+    dataset_y = (df.iloc[:, 1] == 'M').astype('i8')
+
+    Görüldüğü gibi ilk iki sütunu attık. "diagnosis" sütununu 1 ve 0 değerlerine dönüştürdük. 1 değeri "M (malign)", 
+    0 değeri "B (benign)" anlamına gelmektedir. Önce veri kümesini "eğitim" ve "test" olmak üzere iki kısma ayıralım:
+
+    training_dataset_x, test_dataset_x, training_dataset_y, test_dataset_y = \
+            train_test_split(dataset_x, dataset_y, test_size=0.1)
+   
+    Buradaki veri kümesinde sütunların skalaları arasında farklılıklar vardır. Bu tür durumlarda özellik ölçeklemesi 
+    uygulnamalıdır:
+
+    ss = StandardScaler()
+    ss.fit(training_dataset_x)
+    scaled_training_dataset_x  = ss.transform(training_dataset_x)
+    scaled_test_dataset_x  = ss.transform(test_dataset_x)
+
+    Burada dikkat edilmesş gereken nokta özellik ölçeklemesi için fit işlemini eğitim veri kümesiyle yapmak, test veri 
+    kümesini eğitimdeki bilgilerle tarnsform etmektir. Bu nedenle özellik ölçeklemesi veri kümesi "eğitim" ve "test" 
+    olmak üzere iki parçaya ayrıldıktan sonra yapılmalıdır. Sık yapılan bir hata önce özellik ölçeklemesi yapıp sonra 
+    veri kümesini iki kısma ayırmaktır. Oysa her zaman kestieim ve test işlemlerinde eğitimdeki bilgiler kullanılmalıdır. 
+    
+    Artık modelimizi oluşturabiliriz. Model klasik iki ara katmanlı olabilir:
+    
+    model = Sequential(name='WisconsinBreastCance')
+    model.add(Input((scaled_training_dataset_x.shape[1], ), name='Input'))
+    model.add(Dense(64, activation='relu', name='Dense-1'))
+    model.add(Dense(64, activation='relu', name='Dens-2'))
+    model.add(Dense(1, activation='sigmoid', name='Output'))
+    model.summary()
+
+    Modelimizizn parametre sayıları summary metodu tarafından şu biçimde rapor edilmiştir:
+
+    Model: "WisconsinBreastCancer"
+    ┌─────────────────────────────────┬────────────────────────┬───────────────┐
+    │ Layer (type)                    │ Output Shape           │       Param # │
+    ├─────────────────────────────────┼────────────────────────┼───────────────┤
+    │ Dense-1 (Dense)                 │ (None, 64)             │         1,984 │
+    ├─────────────────────────────────┼────────────────────────┼───────────────┤
+    │ Dens-2 (Dense)                  │ (None, 64)             │         4,160 │
+    ├─────────────────────────────────┼────────────────────────┼───────────────┤
+    │ Output (Dense)                  │ (None, 1)              │            65 │
+    └─────────────────────────────────┴────────────────────────┴───────────────┘
+     Total params: 6,209 (24.25 KB)
+    Trainable params: 6,209 (24.25 KB)
+    Non-trainable params: 0 (0.00 B)
+
+    compile işlemini şöyle yapabiliriz:
+
+    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['binary_accuracy'])
+
+    Artık sıra modelin eğitilmesine gelmiştir:
+
+    hist = model.fit(scaled_training_dataset_x, training_dataset_y, batch_size=32, epochs=200, validation_split=0.1)
+
+    Test işlemi şöyle yapılabilir:
+
+    eval_result = model.evaluate(scaled_test_dataset_x, test_dataset_y, batch_size=32, return_dict=True)
+
+    Test sonuçlarını şöyle yazdırabiliriz:
+
+    for name, value in eval_result.items():
+        print(f'{name}: {value}')
+
+    Kestirimde bulunmak için kestirilecek değerleri bir CSV dosyasında topladık. Yine kesitirlecek değerlerin eğitimde 
+    kullanılan aynı ölçekleme nenesiyle ölçeklendirilmesi gerekir:
+
+    predict_data = pd.read_csv('predict.csv').to_numpy()
+    scaled_predict_data = ss.transform(predict_data)
+
+    Artık kestirimi yapabiliriz:
+
+    predict_result = model.predict(scaled_predict_data)
+    for result in predict_result[:, 0]:
+        if result > 0.5:
+            print('Malign')
+        else:
+            print('Benign')
+
+    Yukarıda da belirttiğimiz gibi ağın çıktısı tek nörondan oluşan sigmoid değeridir. Bu değer [0, 1] aralığındadır. 
+    Biz ağın çıkışından aslında çıkışın 1 olma olasılığını elde etmiş olmaktayız. Elde dilen çıktı değerleri 0.5 ile 
+    karşılaştırılıp eğer bu değerler 0.5'ten büyükse "M (malign)", küçük ya da eşitse "B (benign)" sonucu yazdırılmıştır. 
+
+    Örneğin tüm kodlarını aşağıda veriyoruz:
+#---------------------------------------------------------------------------------------------------------------------------
+
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Input, Dense
+
+df = pd.read_csv('../Data/wdbc.data', header=None)
+dataset_x = df.iloc[:, 2:]
+dataset_y = (df.iloc[:, 1] == 'M').astype('i8')
+
+training_dataset_x, test_dataset_x, training_dataset_y, test_dataset_y = train_test_split(dataset_x, dataset_y, test_size=0.1)
+
+ss = StandardScaler()
+ss.fit(training_dataset_x)
+scaled_training_dataset_x  = ss.transform(training_dataset_x)
+scaled_test_dataset_x  = ss.transform(test_dataset_x)
+
+model = Sequential(name='WisconsinBreastCancer')
+model.add(Input((scaled_training_dataset_x.shape[1], ), name='Input'))
+model.add(Dense(64, activation='relu', name='Dense-1'))
+model.add(Dense(64, activation='relu', name='Dens-2'))
+model.add(Dense(1, activation='sigmoid', name='Output'))
+model.summary()
+
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['binary_accuracy'])
+hist = model.fit(scaled_training_dataset_x, training_dataset_y, batch_size=32, epochs=200, validation_split=0.1)
+
+eval_result = model.evaluate(scaled_test_dataset_x, test_dataset_y, batch_size=32, return_dict=True)
+
+for name, value in eval_result.items():
+    print(f'{name}: {value}')
+    
+predict_data = pd.read_csv('predict.csv').to_numpy()
+scaled_predict_data = ss.transform(predict_data)
+
+predict_result = model.predict(scaled_predict_data)
+for result in predict_result[:, 0]:
+    if result > 0.5:
+        print('Malign')
+    else:
+        print('Benign')
+#---------------------------------------------------------------------------------------------------------------------------
+
+#---------------------------------------------------------------------------------------------------------------------------
+                                            62. Ders 04/10/2026 - Pazar
+#---------------------------------------------------------------------------------------------------------------------------
+
+#---------------------------------------------------------------------------------------------------------------------------
+    Her ne kadar regresyon işlemleri kursumuzun konusunu oluşturmuyorsa da sinir ağlarıyla bir regresyon örneği de vermek
+    istiyoruz. Örneğimiz belli bir ürünün yapılan rekleam giderlerine göre satış miktarının tahmin edilmesiyle ilgili. Veri 
+    kümesinde üç farklı reklam yöntemi ve satış adedi sütunlar halinde bulundurulmuştur:
+
+    ┌───────────┬──────────────────────────────┐
+    │   Sütun   │            Birim             │
+    ├───────────┼──────────────────────────────┤
+    │ TV        │ Reklam bütçesi (bin $)       │
+    │ radio     │ Reklam bütçesi (bin $)       │
+    │ newspaper │ Reklam bütçesi (bin $)       │
+    │ sales     │ Satış miktarı (bin adet)     │
+    └───────────┴──────────────────────────────┘
+
+    Buradaki reklam giderleri araştırmanın yapıldığı yıllardaki 1000 dolar cinsinden değerlerdir. Satış miktarı da 
+    1000 adet temelindedir. Veri kümesi aşağıdaki bağlantıdan indirilebilir:
+
+    https://www.statlearning.com/s/Advertising.csv
+
+    Veri kümesi aşağıdaki gibi bir yapıdadır:
+
+    ,TV,radio,newspaper,sales
+    1,230.1,37.8,69.2,22.1
+    2,44.5,39.3,45.1,10.4
+    3,17.2,45.9,69.3,9.3
+    4,151.5,41.3,58.5,18.5
+    5,180.8,10.8,58.4,12.9
+    6,8.7,48.9,75,7.2
+    7,57.5,32.8,23.5,11.8
+    8,120.2,19.6,11.6,13.2
+    ....
+
+    Görüldüğü gibi birinci sütunda bir sıra numarası bulunmaktadır. Bu tür sıra numaralarının tahminlemeye bir katkısı yoktur. 
+    Bu nedenle bu sütun atılmalıdır:
+
+    df = pd.read_csv('../data/advertising.csv')
+    dataset_x = df[['TV', 'radio', 'newspaper']].to_numpy()
+    dataset_y = df['sales'].to_numpy()
+        
+    Şimdi veri kğmesini "eğitim" ve "test" olmak üzere iki kısma ayıralım:
+
+    training_dataset_x, test_dataset_x, training_dataset_y, test_dataset_y = \
+            train_test_split(dataset_x, dataset_y, test_size=0.1)
+
+    Burada biz test veri kümesini asıl veri kğmesinin %10'u olacak biçimde oluşturduk. Veriler az olduğu için test 
+    oranını düşük tutmak istedik. 
+
+    Verilere bakıldığında sütunlar arasında skala farklılığı olduğu görülmektedir. Bu nedenleişlemlere başlamadan önce 
+    özellik ölçeklemesi yapılması uygundur:
+
+    ss = StandardScaler()
+    ss.fit(training_dataset_x)
+
+    scaled_training_dataset_x = ss.transform(training_dataset_x)
+    scaled_test_dataset_x = ss.transform(test_dataset_x)
+
+    Artık sinir ağı mimarimiz oluşturabiliriz. Yine klasik biçimde iki saklı katmandan oluşan bir mimari kullanalım:
+
+    model = Sequential(name='Advertising')
+    model.add(Input((training_dataset_x.shape[1], ), name='Input'))
+    model.add(Dense(64, activation='relu', name='Dense-1'))
+    model.add(Dense(64, activation='relu', name='Dense-2'))
+    model.add(Dense(1, activation='linear', name='Output'))
+    model.summary()
+
+    Burada bir noktaya dikkat einiz: Regresyon problemlerinde çıktı katmanındaki aktivasyon fonksiyonu "linear" olmalıdır. 
+    Asnımsanacağı gibi "linear" aktivasyon fonksiyonu aslında birim fonksiyondur. Modelden elde edilen özet bilgiler şöyledri:
+
+    Model: "Advertising"
+    ┌─────────────────────────────────┬────────────────────────┬───────────────┐
+    │ Layer (type)                    │ Output Shape           │       Param # │
+    ├─────────────────────────────────┼────────────────────────┼───────────────┤
+    │ Dense-1 (Dense)                 │ (None, 64)             │           256 │
+    ├─────────────────────────────────┼────────────────────────┼───────────────┤
+    │ Dense-2 (Dense)                 │ (None, 64)             │         4,160 │
+    ├─────────────────────────────────┼────────────────────────┼───────────────┤
+    │ Output (Dense)                  │ (None, 1)              │            65 │
+    └─────────────────────────────────┴────────────────────────┴───────────────┘
+    Total params: 4,481 (17.50 KB)
+    Trainable params: 4,481 (17.50 KB)
+    Non-trainable params: 0 (0.00 B)
+
+    Görüldüğü gibi modelin eğitilebilir parametrelerin sayısı 4481 tanedir. Bu makul bir değerdir. Şimdi modelimizi 
+    compile edelim:
+
+    model.compile(optimizer='rmsprop', loss='mse', metrics=['mae'])
+
+    Regresyon problemlerinde en çok kullanılan loss fonksiyonu "mean squared error" denilen fonksiyondur. Bu fonksiyon 
+    gerçek değerlerle ağın kestirdiği değerlerin farkının karesinin ortalamasını belirtmektedir. Yani optimizer algoritma 
+    değeri küçültmek için "w" ve "bias" değerlerini güncellemektedir. "Mean squared error" fonksiyonu regresyon için iyi 
+    bir loss fonksiyonu olsa da bu değerin anlamını kestirmek oldukça zordur. Bu nedenle biz "mean absolue error" metrik
+    değerini de kullandık. "Mean absolue error" gerçek değerle ağın üretiiği değerin farklarının ortalaması anlamına 
+    gelmektedir. Örneğin bu deüer 0.5 ise ağın ürettiği değer gerçekten 0.5 aralığında eksik ya da fazla olabilir. Yani 
+    yapılacak maksimum hatanın ortalaması 0.5'dir. 
+
+    Artık modeli eğitebiliriz:
+
+    hist = model.fit(scaled_training_dataset_x, training_dataset_y, batch_size=16, validation_split=0.1, epochs=200)
+
+    Burada eğitim veri kğmesi düşük olduğu için batch büyüklüğünü 32 yerine 16 aldık. Sınama için eğitim veri kümesinin 
+    %10'unu kullandık. fit işleminde 100 epoch kullanıldığına dikkat ediniz. Ancak bu değer bir kanıta dayalı olarak 
+    belirlenebilir. Biz burada öylesine bir değer olarak 200'ü kullandık. Eğitim sırasında elde ekrana yazdırılan son 
+    değerler şöyledir.
+
+    ...
+    Epoch 196/200
+    11/11 ━━━━━━━━━━━━━━━━━━━━ 0s 6ms/step - loss: 0.2132 - mae: 0.3118 - val_loss: 0.4835 - val_mae: 0.5260
+    Epoch 197/200
+    11/11 ━━━━━━━━━━━━━━━━━━━━ 0s 6ms/step - loss: 0.2260 - mae: 0.3262 - val_loss: 0.2345 - val_mae: 0.3729
+    Epoch 198/200
+    11/11 ━━━━━━━━━━━━━━━━━━━━ 0s 6ms/step - loss: 0.2175 - mae: 0.3257 - val_loss: 0.2530 - val_mae: 0.3847
+    Epoch 199/200
+    11/11 ━━━━━━━━━━━━━━━━━━━━ 0s 6ms/step - loss: 0.2162 - mae: 0.3106 - val_loss: 0.2450 - val_mae: 0.3804
+    Epoch 200/200
+    11/11 ━━━━━━━━━━━━━━━━━━━━ 0s 6ms/step - loss: 0.2198 - mae: 0.3394 - val_loss: 0.6867 - val_mae: 0.5992
+  
+    Şimdi modelimzin testini yapalım:
+
+    eval_result = model.evaluate(scaled_test_dataset_x, test_dataset_y, batch_size=16, return_dict=True)
+
+    for name, value in eval_result.items():
+        print(f'{name}: {value}')
+
+    Buradan şöyle bir sonuç elde edilmiştir:
+
+    loss: 0.4467009902000427
+    mae: 0.5057798624038696
+    
+    Şimdi kestrimde bulunalım. KEsitirilecek değerleri "predcit-advertising.csv" dosyasında aşağıdkai gibi oluşturmuş olalım:
+
+    TV,radio,newspaper
+    265.6,20,5s.3
+    95.7,1.4,20.4
+    290.7,10.1,8.5
+    266.9,43.8,5
+    18.7,49.4,45.7
+    20.1,26.7,35.1
+
+    Kestirim kodu şöyle olabilir:
+ 
+    predict_df = pd.read_csv('predict-advertising.csv')
+    predict_dataset_x = predict_df.to_numpy()
+    scaled_predict_dataset_x = ss.transform(predict_dataset_x)
+
+    predict_result = model.predict(scaled_predict_dataset_x)
+
+    for pr in predict_result[:, 0]:
+        print(pr)
+        
+    Şu sonuçlar elde edilmiştir:
+
+    17.570387
+    9.674248
+    13.233554
+    25.456781
+    15.188049
+    10.388306
+
+    Örnek bir bütün olarak aşağıda verilmiştir.
+#---------------------------------------------------------------------------------------------------------------------------
+
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from tensorflow.keras import Sequential
+from tensorflow.keras.layers import Input, Dense
+import pandas as pd
+
+df = pd.read_csv('../data/advertising.csv')
+dataset_x = df[['TV', 'radio', 'newspaper']].to_numpy()
+dataset_y = df['sales'].to_numpy()
+
+training_dataset_x, test_dataset_x, training_dataset_y, test_dataset_y = train_test_split(dataset_x, dataset_y, test_size=0.1)
+
+ss = StandardScaler()
+ss.fit(training_dataset_x)
+
+scaled_training_dataset_x = ss.transform(training_dataset_x)
+scaled_test_dataset_x = ss.transform(test_dataset_x)
+
+model = Sequential(name='Advertising')
+model.add(Input((training_dataset_x.shape[1], ), name='Input'))
+model.add(Dense(64, activation='relu', name='Dense-1'))
+model.add(Dense(64, activation='relu', name='Dense-2'))
+model.add(Dense(1, activation='linear', name='Output'))
+model.summary()
+
+model.compile(optimizer='rmsprop', loss='mse', metrics=['mae'])
+hist = model.fit(scaled_training_dataset_x, training_dataset_y, batch_size=16, validation_split=0.1, epochs=200)
+
+eval_result = model.evaluate(scaled_test_dataset_x, test_dataset_y, batch_size=16, return_dict=True)
+
+for name, value in eval_result.items():
+    print(f'{name}: {value}')
+
+predict_df = pd.read_csv('predict-advertising.csv')
+predict_dataset_x = predict_df.to_numpy()
+scaled_predict_dataset_x = ss.transform(predict_dataset_x)
+
+predict_result = model.predict(scaled_predict_dataset_x)
+
+for pr in predict_result[:, 0]:
+    print(pr)
+
+#---------------------------------------------------------------------------------------------------------------------------
+    Şimdi de "çok sınıflı (multi-class)" sınıflandırma problemi için bir örnek verelim. Örneğimizde "zambak (iris)" veri 
+    kümesini kullanacağız. Bu veri kümesini aşağıdaki bağlantıdan indirebilirsiniz:
+
+    https://archive.ics.uci.edu/dataset/53/iris
+
+    Buradan indirilen zip dosyasının içerisindeki "iris.data" dosyası veri kümesini içermektedir. Her ne kadar bu dosyanın 
+    uzantısı ".dat" olsa da aslında dosya bir CSV dosysıdır. Ancak bu dosyada başlık kısmı yoktur. Veri kğmesinin başlık kısmı 
+    şöyledir:
+
+    SepalLengthCm,SepalWidthCm,PetalLengthCm,PetalWidthCm,Species
+        
+    Bu veri kümesi çok popüler olduğu için başlık kısmı olan versiyonları da bulunmaktadır. Örneğin aşağıdaki bağlantıdan 
+    aynı veri kümesinin başlık kısmını da içeren biçimini indirebilirsiniz:
+
+    https://www.kaggle.com/datasets/uciml/iris
+
+    Bu zip dosyasının içerisindeki "iris.csv" şu görünümdedir:
+
+    Id,SepalLengthCm,SepalWidthCm,PetalLengthCm,PetalWidthCm,Species
+    1,5.1,3.5,1.4,0.2,Iris-setosa
+    2,4.9,3.0,1.4,0.2,Iris-setosa
+    3,4.7,3.2,1.3,0.2,Iris-setosa
+    4,4.6,3.1,1.5,0.2,Iris-setosa
+    5,5.0,3.6,1.4,0.2,Iris-setosa
+    6,5.4,3.9,1.7,0.4,Iris-setosa
+    7,4.6,3.4,1.4,0.3,Iris-setosa
+    ...
+
+    UCI'deki orijinal veri kğmesinde sütunu yoktur. Biz örneğimizde başlıklı kısmı olan "iris.csv" dosyasını kullanalım. 
+    Bu veri kümesinden amaç bir zambak yaprağından hareketle onun türünün tespit edilmesidir. Zambkların üç türü vardır:
+
+    Iris-setosa 
+    Iris-versicolor
+    Iris-virginica
+
+    Veri kümesinde bunlar eşit sayıda yer almaktadır:
+
+    ┌────────────┬─────────────────┬──────────────┐
+    │ Id aralığı │     Species     │ Örnek sayısı │
+    ├────────────┼─────────────────┼──────────────┤
+    │ 1 – 50     │ Iris-setosa     │ 50           │
+    │ 51 – 100   │ Iris-versicolor │ 50           │
+    │ 101 – 150  │ Iris-virginica  │ 50           │
+    └────────────┴─────────────────┴──────────────┘
+
+    Zambakların yapraklarına ilişkin dört ölçüm değeri bulunmatadır: SepalLengthCm, SepalWidthCm, PetalLengthCm, PetalWidthCm.
+
+    ┌───────────────┬─────────┬─────────────┬───────┬────────────────────────┐
+    │     Sütun     │  dtype  │     Rol     │ Birim │        Açıklama        │
+    ├───────────────┼─────────┼─────────────┼───────┼────────────────────────┤
+    │ Id            │ int64   │ Tanımlayıcı │ -     │ Satır numarası (1–150) │
+    │ SepalLengthCm │ float64 │ Özellik     │ cm    │ Çanak yaprak uzunluğu  │
+    │ SepalWidthCm  │ float64 │ Özellik     │ cm    │ Çanak yaprak genişliği │
+    │ PetalLengthCm │ float64 │ Özellik     │ cm    │ Taç yaprak uzunluğu    │
+    │ PetalWidthCm  │ float64 │ Özellik     │ cm    │ Taç yaprak genişliği   │
+    │ Species       │ object  │ Hedef       │ -     │ Tür etiketi (3 sınıf)  │
+    └───────────────┴─────────┴─────────────┴───────┴────────────────────────┘
+
+    Şimdi veri kümesini okuyalım:
+
+    df = pd.read_csv('../data/iris.csv')
+    dataset_x = df[['SepalLengthCm', 'SepalWidthCm', 'PetalLengthCm', 'PetalWidthCm']].to_numpy()
+
+    y verileri birer yazı biçimindedir. Bizim bu yazıları sayısal biçime dönüştürmemiz gerekir. Çok sınıflı sınıflandırma 
+    problemlerinde çıktı katmanında sınıf sayısı kadar nöron bulunmalıdır. Örneğimizde üç sınıf vardır. O halde çıktı 
+    katmanında üç sınıf nöron olmalıdır. Çok sınıflı sınıflandırma problemlerinde ağın çıktı katmanında tipik olarak 
+    "softmax" aktivasyon fonksiyonunun kullanıldığını belirtmiştik. Softmak fonksiyonu çıktı değerlerini toplamı 1 olacak 
+    biçime getirmektedir. Böylece kestirim yapılırken çıktı nöronlarının hangisinin değeri en büyükse kestirim sonucunun 
+    o nöronun temsil ettiği sınıf olduğu kabul edilir. İşte bizim y verilerini de buna uygun oluşturmamız gerekir. y değerleri 
+    hangi sınıfı belirtiyorsa o sınıfa ilişkin değerin 1 olduğu diğer değerlerin 0 olduğu bir temsil sağlanmalıdır. Bu 
+    biçimdeki kodlamaya "one-hot-encoding" dendiğini anımsayınız. Örneğin çıktımızın nöronları sırasıyla şöyle olsun:
+
+    O ---> Iris-setosa
+    O ---> Iris-versicolor
+    O ---> Iris-virginica
+
+    Şimdi eğitim veri kğmesindeki üç satırın aşağıdaki sınıflara sahip olduğunu varsayalım,:
+
+    ...
+    Iris-virginica
+    Iris-setosa
+    Iris-versicolor
+    ...
+
+    Bu sınıflar şöyle kodlanmalıdır: 
+
+    ...
+    0   0   1
+    1   0   0
+    0   1   0
+    ...
+
+    "iris.csv" veri kğmemizde bu işlemi şöyle yapabiliriz:
+
+    ohe = OneHotEncoder(sparse_output=False)
+    ohe.fit(dataset_y)
+    ohe_dataset_y = ohe.transform(dataset_y)
+
+    Artık ohe_dataset_y şöyle bir görüntüye sahiptir:
+
+    array([[1., 0., 0.],
+        [1., 0., 0.],
+        [1., 0., 0.],
+        [1., 0., 0.],
+        [1., 0., 0.],
+        [1., 0., 0.],
+        [1., 0., 0.],
+        [1., 0., 0.],
+       ...
+        [0., 0., 1.]])
+
+    Biz one-hot-encoding dönüştürmesini daha önce görmüştük. Aslında Keras'ta bu işlemi tek hamlede yapan to_categorical 
+    isminde bir fonksiyon bulunmaktadır. Ancak y verilerini to_categorical fonksiyonuna sokmadna önce onları sayısal 
+    hale getirmek gerekir. 
+
+    Yine veri kğmemizi "eğitim" ve "test" olmak üzere ik kısma ayıralım:
+
+    training_dataset_x, test_dataset_x, training_dataset_y, test_dataset_y = \
+            train_test_split(dataset_x, ohe_dataset_y, test_size=0.1)
+
+    Veri kümesi üzerinde özellik ölçeklmesi yapılmalıdır:
+
+    ss = StandardScaler()
+    ss.fit(training_dataset_x)
+
+    scaled_training_dataset_x = ss.transform(training_dataset_x)
+    scaled_test_dataset_x = ss.transform(test_dataset_x)
+
+
+
+
+
+    
 #---------------------------------------------------------------------------------------------------------------------------
 
 #---------------------------------------------------------------------------------------------------------------------------
 
 #---------------------------------------------------------------------------------------------------------------------------
+
+#---------------------------------------------------------------------------------------------------------------------------
+
+#---------------------------------------------------------------------------------------------------------------------------
+
+#---------------------------------------------------------------------------------------------------------------------------
+
+#---------------------------------------------------------------------------------------------------------------------------
+
+#---------------------------------------------------------------------------------------------------------------------------
+
+#---------------------------------------------------------------------------------------------------------------------------
+
+
+

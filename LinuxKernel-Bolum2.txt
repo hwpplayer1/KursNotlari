@@ -17,7 +17,7 @@
 
                         Kurs Notları E-kitap haline de getirilmektedir: linuxkernelbook.readthedocs.io
 
-                                        Son Güncelleme: 19/09/2026 - Pazar
+                                        Son Güncelleme: 05/10/2026 - Pazartesi
 
 ----------------------------------------------------------------------------------------------------------------------*/
 
@@ -20429,8 +20429,8 @@ içerisindedir. ``buffer_head`` nesneleri ise kendi dilim önbelleğinden (*slab
     - İkiz blok tahsisat sisteminde boşta duran sayfalar.
     - "Reserved" olarak işaretlenmiş sayfalar.
 
-    Bunların bir kısmı hiç geri alınamaz; dilim önbelleğindeki olanlar ise LRU üzerinden değil Evre-2'de açıklayacağımız 
-    "büzücüler (shrinkers)" yoluyla küçültülmektedir.
+    Bunların bir kısmı hiç geri alınamaz; dilim önbelleğinde olan dentry ve inode nesneleri  ise LRU üzerinden değil Evre-2'de 
+    açıklayacağımız "büzücüler (shrinkers)" yoluyla küçültülmektedir.
     
     Güncel çekirdeklerde sayfalara ilişkin LRU listeleri eğer CONFIG_MEMCG konfigürsyon seçeneği aktif değilse pglist_data 
     nesnesinde, aktifse mem_cgroup nesnesinin içerisinde tutulmaktadır:
@@ -20574,9 +20574,9 @@ içerisindedir. ``buffer_head`` nesneleri ise kendi dilim önbelleğinden (*slab
     
     INACTIVE_ANON → ACTIVE_ANON → INACTIVE_FILE → ACTIVE_FILE
 
-    Aktif olmayan listeler sürekli kuyruğundan tüketilen, başından beslenen bir kuyruk biçimindedir. Aktif listelerden 
-    geri alım yapılmaz. Aktif listelerdeki folio'lar önce aktif olmayan listelere alınır. Geri alım oradan yapılır. 
-    Yukarıdaki listelerin taranması bir dönü içerisiden yapılmaktadır. Bu süreci biraz basitleştirerek aşağıdaki gibi 
+    Aktif olmayan listeler sürekli tüketilen, başından beslenen bir kuyruk biçimindedir. Aktif listelerden geri alım 
+    yapılmaz. Aktif listelerdeki folio'lar önce aktif olmayan listelere alınır. Geri alım oradan yapılır. Yukarıdaki 
+    listelerin taranması bir dönü içerisiden yapılmaktadır. Bu süreci biraz basitleştirerek aşağıdaki gibi 
     bir şekille açıklayabiliriz:
 
                     ┌────────────────────────────────┐
@@ -20709,7 +20709,7 @@ içerisindedir. ``buffer_head`` nesneleri ise kendi dilim önbelleğinden (*slab
     sonra bir sonraki listeye geçilir. Böylece listeler arasında dönüşümlü, adil bir ilerleme sağlanır ve bir liste 
     diğerinin aleyhine tüketilmez.
 
-    - Sıra bir aktif listeye geldiğinde önce tek bir soru sorulur: bu türün aktif olmayan listesi, bellek boyutuna 
+    - Sıra bir aktif listeye geldiğinde önce tek bir soru sorulur: Bu türün aktif olmayan listesi, bellek boyutuna 
     göre belirlenen orana kıyasla küçük kalmış mı? Hayırsa aktif listeye hiç dokunulmaz. Evetse aktif listenin 
     kuyruğundan 32 sayfa alınır ve her birinin PTE'lerindeki erişim bitleri okunup temizlenir. Sayfa çalıştırılabilir 
     bir dosya eşlemesine aitse ve erişilmişse aktif listenin başına geri konur; diğer tüm sayfalar, erişilmiş olsun 
@@ -20769,57 +20769,35 @@ içerisindedir. ``buffer_head`` nesneleri ise kendi dilim önbelleğinden (*slab
 ----------------------------------------------------------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------------------------------------------------------
-    Şimdi kullanılmayan inode ve dentry nesnelerinin nasıl geri alındığı (yani "Evre-2") üzerinde duralım.
+    Şimdi kullanılmayan dentry ve inode nesnelerinin nasıl geri alındığı (yani "Evre-2") üzerinde duralım. Evre-2'de 
+    önce dentry nesneleri sonra inode nesneleri geri alınmaktadır. Biz de bu bölümde önce dentry nesnelerinin geri alım 
+    mekanizmasını sonra inode nesnelerinin geri alım mekanizmasını inceleyeceğiz. 
+----------------------------------------------------------------------------------------------------------------------*/
 
-    Eskiden inode önbelleğinin geri alımı için tüm inode nesnelerine ilişkin toplamda bir tane LRU listesi tutuluyordu. 
-    Güncel çekirdeklerde her süper blok nesnesi için ayrı bir inode LRU listesi tutulmaktadır. Her dosya sistemi için 
-    bir super_block nesnesi oluşturulduğunu anımsayınız. Bu super_block nesnelerinin içerisinde hem o süper blokta bulunan 
-    bütün inode nesneleri hem de "son zamanlarda en az kullanılan" inode nesneleri bir bağlı liste biçiminde bulunmaktadır:
+/*----------------------------------------------------------------------------------------------------------------------
+    Eskiden dentry önbelleğinin geri alımı için tüm dentry nesnelerine ilişkin dentry_unused isimli tek bir LRU listesi 
+    bulunuyordu. Güncel çekirdeklerde her süper blok nesnesi için ayrı bir dentry LRU listesi tutulmaktadır.
+    Mount edilmiş her dosya sistemi için bir super_block nesnesi oluşturulduğunu anımsayınız. Bu super_block nesnelerinin 
+    içerisinde o süper bloktaki kullanılmayan dentry nesneleri tutulmaktadır:
 
     struct super_block {
         /* ... */
 
-        struct list_head    	s_inodes;	            /* tüm inode nesneleri */
-        struct list_lru         s_inode_lru;            /* inode LRU listesi  */
-        spinlock_t              s_inode_lru_lock;       /* LRU listesi için spinlock */
+        struct list_lru		s_dentry_lru;
         
         /* ... */
     };
 
-    Burada s_inode_lru elemanı bu süper blok içerisindeki inode nesnelerinin LRU listesini belirtmektedir. Bu listenin 
-    başındaki (list_head LRU listelerine göre ters sıra) inode nesneleri "son zamanlarda en az kullanılan" nesnelerdir. 
-    Dolayısıyla inode geri alımı sondan başa doğru yapılmaktadır. s_inode_lru elemanının güncel çekirdeklerde list_head 
-    türünden değil list_lru türünden olduğuna dikkat ediniz. Bu yapı LRU bağlı listelerini soyutlamaktadır. Yapının 
-    tanımlaması 1include/linux/list_lru.h" dosyasında gerçekleştirimi ise "mm/list_lru.c" dosyasında bulunmaktadır. 
-    list_head ile list_lru yapıları arasındaki farklılıkları  aşağıda bir tablo halinde veriyoruz:
+    super_block nesnelerinin içerisinde o süper bloktaki bütün dentry nesnelerini tutan bir liste yoktur. Dentry 
+    nesnelerine global dentry_hashtable üzerinden erişilmektedir. Eskiden s_dentry_lru elemanı list_head türündendi. 
+    3.12 sürümünden itibaren s_dentry_lru elemanının türü list_lru olarak değiştirilmiştir. (Aynı versiyonda s_inode_lru 
+    elemanın türü de benzer biçimde değiştirilmiştir.) list_lru içinde her NUMA düğümü için (memcg etkinse ayrıca her 
+    cgroup için) ayrı listeler bulunmaktadır. 
 
-    ┌──────────────────────┬──────────────────────────────┬──────────────────────────────────────────┐
-    │       Özellik        │          list_head           │                 list_lru                 │
-    ├──────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
-    │ Düzey                │ İlkel (iki işaretçi)         │ list_head üzerine kurulmuş veri yapısı   │
-    │ Semantik             │ Yok; herhangi bir liste      │ LRU: kuyruğa ekle, baştan yaşlıdan gezin │
-    │ Kilit                │ Yok, çağıran sağlar          │ Düğüm başına spinlock, yapının içinde    │
-    │ Sayaç                │ Yok                          │ nr_items, alt liste başına               │
-    │ NUMA farkındalığı    │ Yok                          │ Düğüm başına ayrı liste                  │
-    │ memcg farkındalığı   │ Yok                          │ Cgroup başına ayrı liste (memcg_aware)   │
-    │ Gezinme              │ list_for_each_entry          │ list_lru_walk + isolate geri çağrısı     │
-    │ Tipik kullanıcı      │ Her yer                      │ dentry, inode, xfs_buf, gölge girdi      │
-    │                      │                              │ düğümleri ve diğer shrinker'lar          │
-    │ Sayfa LRU'su ile     │ folio->lru bir list_head'dir │ Sayfa LRU'su list_lru kullanmaz          │
-    │ ilişkisi             │                              │                                          │
-    └──────────────────────┴──────────────────────────────┴──────────────────────────────────────────┘
-
-    Süper blok nesnelerinin inode LRU listelerine (s_inode_lru) o süper bloktaki tüm inode nesneleri yerleştirilmemektedir. 
-    Yalnızca geri alıma aday olan yani kullanılmayan (nesne sayacı 0 olan (i_count = 0 olan)) inode nesneleri bu 
-    listeye yerleştirilmektedir. Dolayısıyla örneğin bir dosya açıkken inode nesnesi dosya nesnesi tarafından gösterildiği 
-    için inode nesnesinin referans sayacı (i_count) 0 olmaktan çıkacaktır. Bu nesne LRU listesinde bulunmayacaktır. 
-    Kendisine hiç referans edilmeyen inode nesneleri bu LRU listesinde tutulmaktadır. 
-----------------------------------------------------------------------------------------------------------------------*/
-BURADA KALDIK
-/*----------------------------------------------------------------------------------------------------------------------
-    Inode LRU listelerinin dolaşılarak inode nesnelerinin geri alınması süreci zaman içerisinde değiştirilmiş ve 
-    iyileştirilmiştir. Güncel çekirdeklerde (bir süredir bu sistem uygulanmaktadır) her süper blok nesnesi için bir 
-    "shrinker" oluşturulmaktadır. Bu shrinker'daki fonksiyonlar kendi süper blok inode nesnelerinin geri alımını yapmaktadır:
+    Dentry ve inode LRU listelerinin dolaşılarak dentry ve inode nesnelerinin geri alınması süreci zaman içerisinde 
+    değiştirilmiş ve iyileştirilmiştir. Güncel çekirdeklerde (bir süredir bu sistem uygulanmaktadır) her super_block 
+    nesnesi için bir "büzücü (shrinker)" oluşturulmaktadır. Bu büzücülerdeki fonksiyonlar kendi süper blok dentry ve 
+    inode nesnelerinin geri alımını yapmaktadır:
 
     struct super_block {
         /* ... */
@@ -20829,7 +20807,8 @@ BURADA KALDIK
         /* ... */
     };
 
-    Mevcut çekirdeklerde shrinker yapısı "include/linux/shrinker.h" dosyası içerisinde şöyle tanımlanmıştır:
+    Büzücüler shrinke` yapısıyla temsil edilmektedir. Mevcut çekirdeklerde shrinker yapısı "include/linux/shrinker.h" 
+    dosyası içerisinde şöyle tanımlanmıştır:
 
     struct shrinker {
         unsigned long (*count_objects)(struct shrinker *,
@@ -20871,15 +20850,14 @@ BURADA KALDIK
 
     Biz burada bu shrinker konusunun ayrıntılarına girmeyeceğiz. 
 
-    Aslında "ksawpd" süper blokları doğrudan dolaşmamaktadır. Süper blokların shrinker nesneleri süper blok 
-    nesnesi yaratıldığında global bir bağlı listede biriktirilir. "ksawpd" bu shrinker listesini dolaşmaktadır. 
+    Aslında "kswapd" süper blokları doğrudan dolaşmamaktadır. Süper blokların shrinker nesneleri super_block
+    nesnesi yaratıldığında global bir bağlı listede biriktirilmektedir, "ksawpd" de bu shrinker listesini dolaşmaktadır. 
     Güncel çekirdeklerde bu shrinker listesi "mm/shrinker.c" dosyası içerisinde aşağıdaki gibi tanımlanmıştır:
 
     LIST_HEAD(shrinker_list);
 
     Buradaki liste shinker nesnelerini dolaşmaktadır. Ancak shrinker nesneleri de super_block nesneleri içerisinde 
-    olduğundan container_of makrosuyla shrinker nesnesinin içinde bulunduğu super_block nesnesine erişim mümkün 
-    olacaktır. 
+    olduğundan container_of makrosuyla shrinker nesnesinin içinde bulunduğu super_block nesnesine erişilebilmektedir:
 
     shrinker_list (mm/vmscan.c)
               │
@@ -20899,11 +20877,13 @@ BURADA KALDIK
     ▼
     struct super_block { … s_dentry_lru, s_inode_lru … }
 
-    İşte "ksawpd" thread'leri aslında bu shrinker listesini dolaşıp inode nesnelerinin geri alımı için shrinker 
+    Her yeni mount işleminde mount edilen super_block nesnesi içerisindeki shrinker da shrinker listesine eklenmektedir. 
+
+    "ksawpd" thread'leri aslında bu shrinker listesini dolaşıp dentry ve inode nesnelerinin geri alımı için shrinker 
     nesnesi içerisindeki fonksiyonları çağırmaktadır. "kswapd" thread'i belli bir noktada shrink_node fonksiyonunu 
-    çağırır. Bu fonksiyon da shirnker listesini dolaşarak shrinker nesneleri içerisindeki scan_objects fonksiyonunu 
-    çağırmaktadır. Inode nesnelerinin yok edilmesi bu yoldan yapılmaktadır. Aşağıda "ksawpd" tarafından çağrılan shrink_node 
-    çağrı zincirini veriyoruz:
+    çağırır. Bu fonksiyon da shirnker listesini dolaşarak shrinker nesneleri içerisindeki scan_objects göstericisinin
+    gösterdiği super_cache_scan fonksiyonunu çağırmaktadır. Bu dentry ve inode nesnelerinin geri alımı bu yoldan 
+    yapılmaktadır. Aşağıda "ksawpd" tarafından çağrılan shrink_node çağrı zincirini sadeleştirerek veriyoruz:
 
     shrink_node()
     └─ shrink_slab()                              mm/vmscan.c (6.7+: mm/shrinker.c)
@@ -20911,40 +20891,245 @@ BURADA KALDIK
             ├─ shrinker->count_objects()  ──▶ super_cache_count()   fs/super.c
             └─ shrinker->scan_objects()   ──▶ super_cache_scan()    fs/super.c
                     ├─ prune_dcache_sb(sb, sc)      → sb->s_dentry_lru
+                    │     └─ list_lru_shrink_walk(&sb->s_dentry_lru, sc,
+                    │            dentry_lru_isolate, &dispose)
+                    │            └─ dentry_lru_isolate()            fs/dcache.c
+                    │                 ├─ DCACHE_REFERENCED set ise:
+                    │                 │    bayrağı temizle, başa çek (ikinci şans)
+                    │                 └─ değilse: shrink_dentry_list() → __dentry_kill()
+                    │                      └─ iput(inode)
+                    │                         ↑ inode'un s_inode_lru'ya girdiği yer
                     ├─ prune_icache_sb(sb, sc)      → sb->s_inode_lru
                     │     └─ list_lru_shrink_walk(&sb->s_inode_lru, sc,
                     │            inode_lru_isolate, &freeable)
                     │            └─ inode_lru_isolate()             fs/inode.c
                     │                 ├─ i_data.nrpages > 0 ise:
                     │                 │    invalidate_mapping_pages(&inode->i_data, 0, -1)
-                    │                 │    ↑ sayfa önbelleğinin bırakıldığı yer
+                    │                 │    ↑ 5.16+ 64 bit'te nadiren; sayfa önbelleği
+                    │                 │      genellikle önceden LRU tarafından boşaltılır
                     │                 └─ değilse: dispose_list() → evict()
                     │                      └─ truncate_inode_pages_final()
                     └─ sb->s_op->free_cached_objects()   (XFS vs. için)
 
-    Her yeni mount işleminde mount edilen super_block nesnesi içerisindeki shrinker da shrinkr listesine eklenmektedir. 
+    Güncel çekirdeklerde dentry nesneleri kimse tarafından kullanılmadığında yani referans sayacı 0'a düştüğünde 
+    (d_lockref.count elemanı) dput fonksiyonu dentry nesnesinin dentry önbelleğinde tutmaya değip değmeyeceğine 
+    retain_dentry fonksiyonunu çağırarak karar verir. O dentry nesnesini ya önbelleğe alır ya da dilime iade eder.
+    Eğer dentry ilk kez kullanılmaz hale geliyorsa nesne LRU listesine eklenir. Dentry zaten LRU listesindeyse (yani 
+    önbellekteyken yeniden bulunup kullanılmış ve tekrar bırakılmışsa) nesnenin d_flags elemanının DCACHE_REFERENCED 
+    biti set edilir. Bu bayrak dentry_lru_isolate fonksiyonu tarafından nesneye ikinci şans (second chance) vermektedir.
+    
+    Dentry nesnelerinin hepsi prune_dcache_sb akışı tarafından taranıp dentry_lru_isolate fonksiyonuna sokulmaktadır.
+    Bu fonksiyon duruma göre nesnenin dilime iade edilemsin sağlayıp uyguladığı işlemin ne olduğu bilgisine geri 
+    dönmektedir.  dentry_lru_isolate fonksiyonun geri dönüş değeri 
+
+    dentry_lru_isolate fonksiyonunun geri dönüş değeri lru_status isimli enum türündendir. Bu enum türünün 
+    elemanları şöyledir:
+
+    enum lru_status {
+        LRU_REMOVED,		    /* item removed from list */
+        LRU_REMOVED_RETRY,	    /* item removed, but lock has been
+                                   dropped and reacquired */
+        LRU_ROTATE,		        /* item referenced, give another pass */
+        LRU_SKIP,		        /* item cannot be locked, skip */
+        LRU_RETRY,		        /* item not freeable. May drop the lock
+                                   internally, but has to return locked. */
+        LRU_STOP,		        /* stop lru list walking. May drop the lock
+                                   internally, but has to return locked. */
+    };
+
+    dentry_lru_isolate fonksiyonunun uyguladığı işlemler sonucunda geri döndürdüğü bu değerlerin anlamını 
+    aşağıdaki tabloda veriyoruz:
+
+    ┌──────────────┬────────────────────────────────┬─────────────────────────────────────────┐
+    │ Dönüş Değeri │             Koşul              │                 Sonuç                   │
+    ├──────────────┼────────────────────────────────┼─────────────────────────────────────────┤
+    │ LRU_SKIP     │ d_lock trylock başarısız       │ Atlanır, listede yerinde kalır          │
+    ├──────────────┼────────────────────────────────┼─────────────────────────────────────────┤
+    │ LRU_REMOVED  │ sayaç > 0                      │ d_lru_isolate(): LRU'dan çıkarılır,     │
+    │              │ (dentry yeniden kullanımda)    │ öldürülmez (tembel çıkarma)             │
+    ├──────────────┼────────────────────────────────┼─────────────────────────────────────────┤
+    │ LRU_ROTATE   │ sayaç 0, DCACHE_REFERENCED set │ Bit silinir; öğe listenin  sonuna       │
+    │              │                                │ taşınır (ikinci şans)                   │
+    ├──────────────┼────────────────────────────────┼─────────────────────────────────────────┤
+    │ LRU_REMOVED  │ sayaç 0, DCACHE_REFERENCED     │ d_lru_shrink_move(): freeable listesine │
+    │              │ set edilmemiş                  │ taşınır, DCACHE_SHRINK_LIST set edilir, │
+    │              │                                │ sonra shrink_dentry_list() öldürür      │
+    └──────────────┴────────────────────────────────┴─────────────────────────────────────────┘
+
+    Peki dentry nesnelerinin LRU listeleri geri alınırken geri alım ne kadar dentry nesnesini kapsayacak biçimde
+    yapılmaktadır? İşte süper blok dentry LRU listelerindeki her dentry nesnesi geri alıma müsait değildir. dentry
+    nesnesinin geri alınabilirliği konusundaki kararlar dentry_lru_isolate isimli fonksiyon tarafından verilip işlemler de
+    bu fonksiyon tarafından yapılmaktadır. Fonksiyon her nesne için "ben şunu yaptım" anlamında bir enum lru_status değeri
+    döndürmektedir. Geri döndürülen değerler şunlardır:
+
+    ┌──────────────┬──────────────────────────────────────────────┬──────────────────────────────────────────┐
+    │ Dönüş Değeri │                    Koşul                     │                  Sonuç                   │
+    ├──────────────┼──────────────────────────────────────────────┼──────────────────────────────────────────┤
+    │ LRU_SKIP     │ d_lock trylock başarısız                     │ Atlanır, listede kalır                   │
+    ├──────────────┼──────────────────────────────────────────────┼──────────────────────────────────────────┤
+    │ LRU_REMOVED  │ d_lockref.count > 0                          │ Listeden çıkarılır, dilime iade edilmez  │
+    │              │ (yeniden kullanımda)                         │ (tembel çıkarma)                         │
+    ├──────────────┼──────────────────────────────────────────────┼──────────────────────────────────────────┤
+    │ LRU_ROTATE   │ sayaç 0, DCACHE_REFERENCED set               │ Bit reset edilir, listenin sonuna        │
+    │              │                                              │ alınır (ikinci şans)                     │
+    ├──────────────┼──────────────────────────────────────────────┼──────────────────────────────────────────┤
+    │ LRU_REMOVED  │ yukarıdakilerin hiçbiri yok                  │ DCACHE_SHRINK_LIST set edilir, dispose   │
+    │              │                                              │ (freeable) listesine alınır              │
+    └──────────────┴──────────────────────────────────────────────┴──────────────────────────────────────────┘
+
+    dentry_lru_isolate fonksiyonu (inode_lru_isolate fonksiyonundan farklı olarak) LRU_RETRY değerini hiçbir zaman
+    döndürmemektedir. Çünkü dentry nesnelerinin geri yazılacak bir içeriği, tamponu ya da sayfa önbelleği yoktur ve
+    fonksiyon liste kilidini hiçbir zaman bırakmaz. Ayrıca dispose listesine alınan dentry nesnesi henüz öldürülmüş
+    değildir; asıl öldürme işlemi liste yürüyüşü bittikten sonra shrink_dentry_list fonksiyonu tarafından yapılmaktadır.
+
+    dentry_lru_isolate fonksiyonu tarafından yapılan işlemler şunlardır:
+
+    1) Kilit çekişmesi yaşanıyorsa (LRU_SKIP): Normal kilit sırası önce d_lock, sonra LRU listesinin kilididir. Tarayıcı ise
+    liste kilidini tutarken d_lock kilidini almak zorundadır; yani sıra terstir. Bu yüzden spin_trylock kullanılır. Kilit
+    alınamazsa nesne o taramada tamamen atlanır ve listede yerinde kalır.
+
+    2) Listede olduğu halde yeniden referans edilmiş (yani d_lockref.count > 0) nesneler: Nesne listedeyken bir yol
+    aramasıyla (__d_lookup_rcu(), __d_lookup()) bulunup kullanılmaya başlanmış olabilir. Arama nesneyi listeden çıkarmaz,
+    yalnızca sayacı artırır. Nesne, dentry_lru_isolate fonksiyonu içindeki d_lru_isolate() çağrısıyla listeden tembel
+    biçimde (lazily) çıkarılır. Bu çağrı DCACHE_LRU_LIST bitini siler ve nr_dentry_unused sayacını düşürür. Fonksiyon
+    LRU_REMOVED ile döner, ama nesne öldürülmez. Sayaç daha sonra dput() ile yeniden sıfıra indiğinde retain_dentry()
+    nesneyi d_lru_add() ile tekrar listenin sonuna ekler. (list_lru yapısında listenin başındakilerin en eski,
+    sonundakilerin en yeni olduğunu anımsayınız.)
+
+    3) Durum bitleri kontrolü yoktur: inode tarafındaki I_DIRTY, I_SYNC, I_NEW, I_FREEING kontrolünün dentry tarafında bir
+    karşılığı yoktur. dentry'nin geri yazılacak bir içeriği ve yedek deposu olmadığından "kirli" durumu da yoktur.
+    Hash'ten çıkarılmış, bağlantısız ya da DCACHE_DONTCACHE bayraklı dentry'ler ise bu fonksiyona hiç ulaşmaz. Bunları
+    retain_dentry() daha sayaç sıfıra indiği anda öldürür ve listeye hiç eklemez. Yani bu eleme taramada değil, listeye
+    giriş kapısında yapılır.
+
+    4) İkinci şans hakkı verilen nesneler: Nesne listedeyken kullanılıp bırakıldıysa, retain_dentry() içinde (6.8 öncesinde
+    dput() içinde) DCACHE_REFERENCED biti set edilir. Nesne zaten listede olduğu (DCACHE_LRU_LIST set) için yeniden
+    eklenmez, yalnızca bit işaretlenir. Tarayıcı biti siler, d_lock kilidini bırakır ve LRU_ROTATE döner. Asıl taşıma
+    işini liste yürüyüşünü yapan kod (list_move_tail) yapar ve nesne listenin sonuna, yani en yenilerin bulunduğu kısma
+    alınır. d_lock bu taşımadan önce bırakılabilir, çünkü liste üzerindeki bütün hareketler liste kilidiyle korunur.
+
+    5) Sayfa önbelleğine ilişkin bir kontrol yoktur: dentry'nin sayfa önbelleği ya da tamponu yoktur. Bu yüzden
+    mapping_shrinkable, remove_inode_buffers ve invalidate_mapping_pages karşılıkları da, LRU_RETRY dönüşü de bulunmaz.
+    Liste kilidi hiçbir zaman bırakılmadığından yürüyüşün baştan başlatılmasına gerek kalmaz. Sayfa önbelleğiyle ilgili
+    iş, dentry öldürülüp inode referansını bıraktıktan sonra inode tarafında yapılır.
+
+    6) Yukarıdaki durumların dışında: dentry_lru_isolate fonksiyonu d_lru_shrink_move() ile nesneyi listeden çıkarır ve
+    freeable (dispose) listesine alır. Bu sırada DCACHE_LRU_LIST biti silinir, DCACHE_SHRINK_LIST biti set edilir.
+    Fonksiyon bu durumda LRU_REMOVED değeri ile geri döner. Nesne henüz öldürülmemiştir. Asıl öldürme, liste yürüyüşü
+    bittikten sonra kilitsiz olarak shrink_dentry_list() içinde yapılır. Orada __dentry_kill() dentry'yi hash'ten
+    çıkarır, inode referansını iput() ile bırakır (inode'un sayacı sıfıra inerse inode, inode LRU'suna girer) ve nesneyi
+    dilime iade eder.
+
+    7) Dispose listesindeyken yeniden bulunan nesneler: Bu, 2. maddenin dispose listesindeki karşılığıdır. Nesne dispose
+    listesine taşındığında hâlâ hash tablosundadır ve bu arada bir yol aramasıyla bulunup sayacı artırılabilir.
+    shrink_dentry_list() bunu lock_for_kill() başarısız olduğunda anlar. Nesneyi öldürmez, yalnızca d_shrink_del() ile
+    DCACHE_SHRINK_LIST bitini silip dispose listesinden çıkarır. Sayaç sonradan sıfıra indiğinde nesne olağan yoldan
+    tekrar LRU'ya girer.
+----------------------------------------------------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------------------------------------------------
+    Eskiden inode önbelleğinin geri alımı için tüm inode nesnelerine ilişkin toplamda bir tane LRU listesi bulunuyordu. 
+    Güncel çekirdeklerde uzunca bir süredir her süper blok nesnesi için ayrı bir inode LRU listesi tutulmaktadır. Mount 
+    edilmiş her dosya sistemi için bir super_block nesnesi oluşturulduğunu anımsayınız. Bu super_block nesnelerinin 
+    içerisinde hem o süper blokta bulunan bütün inode nesnelerini hem de kullanılmayan inode nesnelerini tutan elemanlar 
+    bulunmaktadır:
+
+    struct super_block {
+        /* ... */
+
+        struct list_head    	s_inodes;	            /* tüm inode nesneleri */
+        struct list_lru         s_inode_lru;            /* inode LRU listesi  */
+        spinlock_t              s_inode_lru_lock;       /* LRU listesi için spinlock */
+        
+        /* ... */
+    };
+
+    Burada s_inode_lru elemanı bu süper blok içerisindeki kullanılmayan inode nesnelerinin LRU listesini belirtmektedir. 
+    Bu listenin başındaki (list_head LRU listelerine göre ters sıra) inode nesneleri en eski nesnelerdir. Dolayısıyla 
+    inode geri alımı baştan sona doğru yapılmaktadır. s_inode_lru elemanının güncel çekirdeklerde list_head türünden 
+    değil list_lru türünden olduğuna dikkat ediniz. Bu geçiş de dentry LRU listelerinde olduğu gibi çekirdeğin 3.12 
+    versiyonunda yapılmıştır. Bu yapı memcg temelinde bağlı LRU listelerini soyutlamaktadır. Bu sayede büzücüler (shrinkers) 
+    belirli bir düğüm ya da cgroup için çağrıldığında yalnızca ilgili liste taranır. Her süper bloğun kendi büzücüsü 
+    bulunmaktadır. list_lru yapısının tanımlaması "include/linux/list_lru.h" dosyasında, gerçekleştirimi ise "mm/list_lru.c" 
+    dosyasında yapılmıştır. list_head ile list_lru yapıları arasındaki farklılıkları aşağıda bir tablo halinde veriyoruz:
+
+    ┌──────────────────────┬──────────────────────────────┬──────────────────────────────────────────┐
+    │       Özellik        │          list_head           │                 list_lru                 │
+    ├──────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+    │ Düzey                │ İlkel (iki işaretçi)         │ list_head üzerine kurulmuş veri yapısı   │
+    │ Semantik             │ Yok; herhangi bir liste      │ LRU: kuyruğa ekle, baştan yaşlıdan gezin │
+    │ Kilit                │ Yok, çağıran sağlar          │ Düğüm başına spinlock, yapının içinde    │
+    │ Sayaç                │ Yok                          │ nr_items, alt liste başına               │
+    │ NUMA farkındalığı    │ Yok                          │ Düğüm başına ayrı liste                  │
+    │ memcg farkındalığı   │ Yok                          │ Cgroup başına ayrı liste (memcg_aware)   │
+    │ Gezinme              │ list_for_each_entry          │ list_lru_walk + isolate geri çağrısı     │
+    │ Tipik kullanıcı      │ Her yer                      │ dentry, inode, xfs_buf, gölge girdi      │
+    │                      │                              │ düğümleri ve diğer shrinker'lar          │
+    │ Sayfa LRU'su ile     │ folio->lru bir list_head'dir │ Sayfa LRU'su list_lru kullanmaz          │
+    │ ilişkisi             │                              │                                          │
+    └──────────────────────┴──────────────────────────────┴──────────────────────────────────────────┘
+
+    Süper blok nesnelerinin inode LRU listelerine (s_inode_lru) o süper bloktaki tüm inode nesneleri yerleştirilmemektedir. 
+    Yalnızca geri alıma aday olan yani kullanılmayan (nesne sayacı 0 olan (i_count = 0 olan)) inode nesneleri bu 
+    listeye yerleştirilmektedir. Dolayısıyla örneğin bir dosya açıkken inode nesnesi dosya nesnesi tarafından gösterildiği 
+    için inode nesnesinin referans sayacı (i_count) 0 olmaktan çıkacaktır. Bu nesne LRU listesinde bulunmayacaktır. 
+    Kendisine hiç referans edilmeyen (başka bir deyişle kullanılmayan) inode nesneleri bu LRU listesinde tutulmaktadır. 
+----------------------------------------------------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------------------------------------------------
+    Inode LRU listelerinin geri alımı da yine super_block nesnelerinin içerisindeki shrinker nesnesi yoluyla yapılmaktadır.
+    Büzücüdeki scan_object fonksiyon göstericisinin gösterdiği super_cache_scan fonksiyonu prune_dcache_sb fonksiyonundan
+    sonra prune_icache_sb fonksiyonunu çağırmaktadır. Inode nesnelerinin i bırakılması bu yoldan yapılmaktadır.
+    Yukarıda vermiş olduğumuz çağrı zincirini yeniden veriyoruz:
+
+    shrink_node()
+    └─ shrink_slab()                              mm/vmscan.c (6.7+: mm/shrinker.c)
+       └─ do_shrink_slab(shrinker)
+            ├─ shrinker->count_objects()  ──▶ super_cache_count()   fs/super.c
+            └─ shrinker->scan_objects()   ──▶ super_cache_scan()    fs/super.c
+                    ├─ prune_dcache_sb(sb, sc)      → sb->s_dentry_lru
+                    │     └─ list_lru_shrink_walk(&sb->s_dentry_lru, sc,
+                    │            dentry_lru_isolate, &dispose)
+                    │            └─ dentry_lru_isolate()            fs/dcache.c
+                    │                 ├─ DCACHE_REFERENCED set ise:
+                    │                 │    bayrağı temizle, başa çek (ikinci şans)
+                    │                 └─ değilse: shrink_dentry_list() → __dentry_kill()
+                    │                      └─ iput(inode)
+                    │                         ↑ inode'un s_inode_lru'ya girdiği yer
+                    ├─ prune_icache_sb(sb, sc)      → sb->s_inode_lru
+                    │     └─ list_lru_shrink_walk(&sb->s_inode_lru, sc,
+                    │            inode_lru_isolate, &freeable)
+                    │            └─ inode_lru_isolate()             fs/inode.c
+                    │                 ├─ i_data.nrpages > 0 ise:
+                    │                 │    invalidate_mapping_pages(&inode->i_data, 0, -1)
+                    │                 │    ↑ 5.16+ 64 bit'te nadiren; sayfa önbelleği
+                    │                 │      genellikle önceden LRU tarafından boşaltılır
+                    │                 └─ değilse: dispose_list() → evict()
+                    │                      └─ truncate_inode_pages_final()
+                    └─ sb->s_op->free_cached_objects()   (XFS vs. için)
 ----------------------------------------------------------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------------------------------------------------------
     Peki inode nesnelerinin LRU listeleri geri alınırken geri alım ne kadar inode nesnesini kapsayacak biçimde yapılmaktadır? 
     İşte süper blok inode LRU listelerindeki her inode nesnesi geri alıma müsait değildir. Inode nesnesinin geri alınabilirliği 
-    konusundaki kararlar inode_lru_isolate isimli fonksiyon tarafından verilip işlemler bu fonksiyon tarafından yapılmaktadır. 
-    Fonksiyon her nesne için "ben şunu yaptım" anlamında bir enum lru_status değeri döndürmektedir. Geri döndürülen değerler 
-    şunlardır:
+    konusundaki kararlar tıpkı dentry nesnelerinde olduğu gibi inode_lru_isolate isimli fonksiyon tarafından verilip 
+    işlemler bu fonksiyon tarafından yapılmaktadır. Fonksiyon her nesne için "ben şunu yaptım" anlamında bir enum lru_status 
+    değeri döndürmektedir. Geri döndürülen değerler şunlardır:
 
-    ┌──────────────┬──────────────────────────────────────────────┬─────────────────────────────────────────┐
-    │ Dönüş Değeri │                    Koşul                     │                 Sonuç                   │
-    ├──────────────┼──────────────────────────────────────────────┼─────────────────────────────────────────┤
-    │ LRU_SKIP     │ i_lock trylock başarısız                     │ Atlanır, listede kalır                  │
-    │ LRU_REMOVED  │ i_count > 0 / durum biti / mapping tutulmalı │ Listeden çıkarılır, dilime iade edilmez │
-    │ LRU_ROTATE   │ sadece I_REFERENCED set edilmiş              │ Bit reset edilir, listenin sonuna       │
-    │              │                                              │ alınır (ikinci şans)                    │
-    │ LRU_RETRY    │ tampon veya sayfa önbelleği dolu             │ Sayfalar geri alınır, yeniden denenir   │
-    │ LRU_REMOVED  │ yukarıdakilerin hiçbiri yok                  │ I_FREEING set, freeable listesine       |
-    │              │                                              │ alınır.                                 |
-    └──────────────┴──────────────────────────────────────────────┴─────────────────────────────────────────┘
+    ┌──────────────┬──────────────────────────────────────────────┬──────────────────────────────────────────┐
+    │ Dönüş Değeri │                    Koşul                     │                 Sonuç                    │
+    ├──────────────┼──────────────────────────────────────────────┼──────────────────────────────────────────┤
+    │ LRU_SKIP     │ i_lock trylock başarısız                     │ Atlanır, listede kalır                   │
+    │ LRU_REMOVED  │ i_count > 0 / durum biti / mapping tutulmalı │ Listeden çıkarılır, dilime iade edilmez  │
+    │ LRU_ROTATE   │ sadece I_REFERENCED set edilmiş              │ Bit reset edilir, listenin sonuna        │
+    │              │                                              │ alınır (ikinci şans)                     │
+    │ LRU_RETRY    │ tampon veya sayfa önbelleği dolu             │ Sayfalar geri alınır, yeniden denenir    │
+    │ LRU_REMOVED  │ yukarıdakilerin hiçbiri yok                  │ I_FREEING set edilir, freeable listesine |
+    │              │                                              │ alınır.                                  |
+    └──────────────┴──────────────────────────────────────────────┴──────────────────────────────────────────┘
 ─
-    inode_lru_isolate fonksiyonu tarafından yapılan işlemler şunladır:
+    inode_lru_isolate fonksiyonu daha önce görmüş olduğumuz dentry_lru_isolate fonksiyonun yaptığı işlemlerin 
+    inode nesneleri için benzerini yapmaktadır:
 
     1) Kilit çekişmesi (LRU_SKIP) yaşanıyorsa: lru_lock ile i_lock arasında kilit sırası ters olduğu için spin_trylock
     fonksiyonu kullanılır; bu fonksiyon başarısız olursa nesne o taramada tamamen atlanır.

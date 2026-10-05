@@ -16,7 +16,7 @@
                         (Notları sabit genişlikli font kullanan programlama editörleri ile açınız.)
                             (Editörünüzün "Line Wrapping" özelliğini pasif hale getiriniz.)
 
-                                          Son Güncelleme: 30/09/2026 - Salı
+                                          Son Güncelleme: 05/10/2026 - Pazartesi
 
 ---------------------------------------------------------------------------------------------------------------------------*/
 
@@ -14371,17 +14371,17 @@ int main(void)
     birbirlerinden ayrıdır.
 
     3) Yeni yaratılan alt proses çalışmaya fork fonksiyonunun içinden başlar. Her iki akış da (yani fork uygulayan prosesin 
-    akışı ve yeni yaratılan alt prosesin akışı da) fork içerisinde çıkar. Üst proses fork fonksiyonundan alt prosesin proses ID'si 
+    akışı ve yeni yaratılan alt prosesin akışı da) fork içerisinden çıkar. Üst proses fork fonksiyonundan alt prosesin proses ID'si 
     ile çıkarken alt proses 0 ile çıkmaktadır. 
 
     Yukarıdaki işlemler fork fonksiyonunun içinde yapılmaktadır. fork fonksiyonundan hem bu fonksiyonu çağıran proses hem de 
     yeni yaratılan proses çıkmaktadır. Ancak bunların bellek alanları ayrı olduğu için artık birinin yapacağı değişikliği diğeri 
-    görmeyecektir. fork fonksiyonu, bir klonlama yapmaktadır. Yeni bir prosesi, kendi çağıran prosesle aynı özelliklerle ve aynı 
+    görmeyecektir. fork fonksiyonu, bir klonlama yapmaktadır. Yeni bir prosesi, kendini çağıran prosesle aynı özelliklerle ve aynı 
     bellek alanı ile yaratmaktadır. fork sırasında prosesin kontrol bloğu yeni yaratılan prosese kopyalandığı için üst proses ile 
     alt proses aynı gerçek ve etkin kullanıcı ve grup ID'sine sahip olur. 
 
     fork işlemini yapan proses üst proses (parent process) durumundadır. Yeni yaratılan proses ise alt proses (child process) 
-    durumundadır. Tabii alt proses yeni bir proses ID'ye sahip olacaktır. Alt prosesin üst prosesi, fork fonksiyonu uygulayan 
+    durumundadır. Tabii alt proses yeni bir proses ID'ye sahip olacaktır. Alt prosesin üst prosesi, fork fonksiyonunu uygulayan 
     proses olacaktır. 
     
     fork fonksiyonu başarısız olabilir. (Örneğin kaynak yetersizliği durumunda, kullanıcının proses yaratma limiti aşıldığı 
@@ -14392,7 +14392,7 @@ int main(void)
     içerisinden çıkacaktır. İşte üst proses (yani fork işlemini yapan proses) "alt prosesin ID" değeri ile, alt proses ise "0 değeri 
     ile" fork fonksiyonundan çıkar. Böylece programcı fork çıkışında üst proses ile alt prosese farklı işlemler yaptırabilmektedir. 
     (Alt prosesin fork içerisinden 0 ile çıkması alt prosesin proses ID'sinin 0 olduğu anlamına gelmemektedir. Alt prosesin proses 
-    ID'si alt proses içerisinden getpid fonksiyonuyla elde edilebilmektedir.)
+    ID'si alt proses içerisinden getpid POSIX fonksiyonuyla elde edilebilmektedir.)
 
     fork kullanımına ilişkin tipik kalıbı şöyledir:
 
@@ -14441,7 +14441,7 @@ int main(void)
 
     if (pid != 0) {        /* parent process */
         printf("Parent PID: %jd\n", (intmax_t)getpid());
-        printf("Parent's parent PID: %jdd\n", (intmax_t)getppid());
+        printf("Parent's parent PID: %jd\n", (intmax_t)getppid());
         printf("fork return value: %jd\n", (intmax_t)pid);
     }
     else {                /* child process */
@@ -14476,8 +14476,8 @@ void exit_sys(const char *msg)
     fork işleminde en fazla kafa karıştıran noktalardan biri fork fonksiyonundan iki akışın çıkması durumudur. Burada 
     genellikle yeni öğrenenlerin gözden kaçırdığı birkaç nokta vardır:
 
-    1) fork sırasında fork işlemini yapan prosesin (yani üst prosesin) tüm bellek alanının yani onun kod, data, stack ve heap 
-    alanlarının özdeş bir kopyası oluşturulmaktadır. Yani fork işlemini yapan prosesin kod, data stack ve heap alanlarının hepsi 
+    1) fork sırasında fork işlemini yapan prosesin (yani üst prosesin) tüm bellek alanının (onun kod, data, stack ve heap 
+    alanlarının) özdeş bir kopyası oluşturulmaktadır. Yani fork işlemini yapan prosesin kod, data, stack ve heap alanlarının hepsi 
     alt proseste de bulunmaktadır. Örneğin:
 
     if ((pid = fork()) == -1)
@@ -14490,14 +14490,15 @@ void exit_sys(const char *msg)
         /* ... */
     }
 
-    Programcının yazdığı bu kod hem üst proses hem de alt proses tarafından çalıştırılmaktadır. Yani bu kod hem üst proseste 
-    hem de alt proseste bulunacaktır. Bizim buradaki temel amacımız fork çıkışında kodu aynı olan iki farklı prosese farklı 
-    şeyleri yaptırmaktır. İşte bunu fork fonksiyonunun geri dönüş değerini kontrol ederek sağlayabilmekteyiz. 
+    Programcının yazdığı bu kodun fork sonrası hem üst proses hem de alt proses tarafından çalıştırılmaktadır. Yani bu kod 
+    hem üst proseste hem de alt proseste bulunacaktır. Bizim buradaki temel amacımız fork çıkışında kodu aynı olan iki farklı 
+    prosese farklı şeyleri yaptırmaktır. İşte bunu fork fonksiyonunun geri dönüş değerini kontrol ederek sağlayabilmekteyiz. 
 
-    2) Yeni öğrenen kişilere iki prosesin de fork fonksiyonundan çıkması tuhaf gelebilmektedir. Aslında burada bir tuhaflık yoktur. 
-    Şöyle ki: Prosesin yaratılması ve bellek alanlarının kopyalanması zaten fork içerisinde yapılmaktadır. fork fonksiyonunu 
-    çağıran proses (üst proses) fork'tan çıkacaktır. Kopyası çıkartılan alt prosesin çalışması da fork içerisinden başlatılmaktadır.
-    Bu durumda alt proses de fork fonksiyonundan çıkacaktır. Çatallanmanın fork içerisinde yapıldığına dikkat ediniz. 
+    2) Yeni öğrenen kişilere iki prosesin de fork fonksiyonundan çıkması tuhaf gelebilmektedir. Aslında burada bir tuhaflık 
+    yoktur. Şöyle ki: Prosesin yaratılması ve bellek alanlarının kopyalanması zaten fork içerisinde yapılmaktadır. fork 
+    fonksiyonunu çağıran proses (üst proses) fork'tan çıkacaktır. Kopyası çıkartılan alt prosesin çalışması da fork içerisinden 
+    başlatılmaktadır. Bu durumda alt proses de fork fonksiyonundan çıkacaktır. Çatallanmanın fork içerisinde yapıldığına 
+    dikkat ediniz. 
 
     Tabii fork fonksiyonundan çıkınca artık üst proses ile alt prosesin yaşamları farklı olabilmektedir. Örneğin üst proses 
     bir global değişkenin değerini değiştirse alt proses bunu değişmiş olarak görmez. Çünkü o global değişkenin üst proseste 
@@ -14508,7 +14509,7 @@ void exit_sys(const char *msg)
 
     Aşağıdaki örnekte fork işlemi sonrasında üst proses g_x global değişkenine yeni bir değer atamıştır. Sonra alt proseste bu 
     global değişkenin değeri yazdırılmıştır. Tabii alt proses üst prosesin yaptığı bu değişikliği görmeyecektir. Çünkü aslında 
-    iki prosesin de bellek alanları tamamen fork içerisinde klonlama yöntemiyle ayrıştırılmıştır. 
+    iki prosesin de bellek alanları tamamen fork içerisinde klonlama sıtasında ayrıştırılmıştır. 
 ---------------------------------------------------------------------------------------------------------------------------*/
 
 #include <stdio.h>
@@ -14553,7 +14554,7 @@ void exit_sys(const char *msg)
 ---------------------------------------------------------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------------------------------------------------------
-    Aşağıdaki örnekte "Common Code" yazısı 8 defa ekranda görünecektir:
+    Aşağıdaki örnekte "Common Code" yazısı 8 kez ekranda görünecektir:
     
 
     fork();
@@ -16173,6 +16174,8 @@ void exit_sys(const char *msg)
     bulunmaktadır.) Ayrıca Linux sistemlerine özgü bir biçimde sys_execveat isimli bir fonksiyonu da bulunmaktadır. Linux'ta 
     bu fonksiyon execveat ismiyle kullanılabilmektedir. 
 
+    Biz genel olarak bu fonksiyonlara "exec fonksiyonları" diyeceğiz. 
+
     Aslında UNIX/Linux sistemleri bu exec fonksiyonlarının hepsini sistem fonksiyonu biçiminde bulundurmamaktadır. Örneğin
     Linux sistemlerinde execve fonksiyonu bir sistem fonksiyonu biçiminde (sys_execve) yazılmıştır. Diğer exec fonksiyonları 
     bu sistem fonksiyonunu çağıran kütüphane fonksiyonları biçiminde gerçekleştirilmiştir. Yukarıda da belirttiğimiz gibi 
@@ -16454,17 +16457,17 @@ void exit_sys(const char *msg)
 ---------------------------------------------------------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------------------------------------------------------
-    execv fonksiyonu işlevsel olarak execl fonksiyonu ile aynıdır. Ancak bu fonksiyon çalıştırılacak program için komut 
-    satırı argümanlarını bir gösterici dizisi biçiminde ister. Fonksiyonun prototipi şöyledir:
+    execv fonksiyonu execl fonksiyonu ile aynı işlevselliğe sahiptir. Ancak bu fonksiyon çalıştırılacak programın komut 
+    satırı argümanlarını bir gösterici dizisi biçiminde almaktadır. Fonksiyonun prototipi şöyledir:
 
     #include <unistd.h>
 
     int execv(const char *path, char * const *argv);
 
-    Fonksiyonun birinci parametresi çalıştırılacak program dosyasının yol ifadesini belirtir. İkinci parametresi ise komut 
+    Fonksiyonun birinci parametresi çalıştırılacak program dosyasının yol ifadesini, ikinci parametresi ise komut 
     satırı argümanlarının bulunduğu char türden gösterici dizisinin başlangıç adresini almaktadır. Yani bizim komut satırı 
-    argümanlarını bir gösterici dizisine yerleştirip onun adresini vermemiz gerekir. Bu gösterici dizisinin son elemanı NULL 
-    adres olmalıdır. Tabii bu durumda tür dönüştürmesi yapmaya gerek yoktur. Örneğin:
+    argümanlarını bir gösterici dizisine yerleştirip fonksiyona onun adresini vermemiz gerekir. Bu gösterici dizisinin son 
+    elemanında NULL adres bulunmalıdır. Tabii bu durumda tür dönüştürmesi yapmaya gerek yoktur. Örneğin:
 
     char *argv[] = {"/bin/ls", "-l", NULL};
     /* ... */
@@ -16472,11 +16475,10 @@ void exit_sys(const char *msg)
     execv("/bin/ls", argv);
     exit_sys("execv");
 
-    execv fonksiyonun ikinci parametresindeki const niteleyicisinin yerine dikkat ediniz. Burada const niteleyicisi adresi 
+    execv fonksiyonunun ikinci parametresindeki const niteleyicisinin yerine dikkat ediniz. Buradaki const niteleyicisi adresi 
     geçirilen gösterici dizisinin const olduğunu belirtmektedir. Yani fonksiyon hem o gösterici dizisinde değişiklik yapmamaktadır 
-    hen de o gösterici dizisinin gösterdiği dizilerde değişiklik yapmamaktadır. 
 
-    Aşağıdaki execv fonksiyonun kullanımına bir örnek verilmiştir.
+    Aşağıda execv fonksiyonun kullanımına bir örnek verilmiştir.
 ---------------------------------------------------------------------------------------------------------------------------*/
 
 #include <stdio.h>
@@ -16516,18 +16518,18 @@ void exit_sys(const char *msg)
 
 /*---------------------------------------------------------------------------------------------------------------------------
    Peki execv ne zaman tercih edilebilir? İşte bazen execl fonksiyonu yerine execv fonksiyonunun kullanılması daha uygun 
-   olabilmektedir. Örneğin biz "sample" isimli bir program yazalım. Bu program da komut satırı argümanlarıyla aldığı programı 
-   çalıştırsın. Yani "sample" programı şöyle çalıştırılsın:
+   olabilmektedir. Örneğin biz "runprog" isimli bir program yazalım. Bu program da komut satırı argümanlarıyla aldığı programı 
+   çalıştırsın. Yani "runprog" programı şöyle çalıştırılsın:
 
-    $ ./sample /bin/ls -l
+    $ ./runprog /bin/ls -l
 
-    Eğer böyle bir programı execl ile yazamaya çalışırsak bunu pratik bir biçimde başaramayız. Çünkü çalıştıracağımız programın 
+    Eğer böyle bir programı execl ile yazmaya çalışırsak bunu pratik bir biçimde başaramayız. Çünkü çalıştıracağımız programın 
     kaç komut satırı argümanı ile çalıştırılacağını baştan bilmemekteyiz. Aşağıda böyle bir programa örnek verilmiştir. Programı 
     şöyle edebilirsiniz:
 
-    $ ./sample /bin/ls -l
-    $ ./sample /bin/cp sample.c x.c
-    $ ./sample other ali veli selami
+    $ ./runprog /bin/ls -l -i
+    $ ./runprog /bin/cp sample.c x.c
+    $ ./runprog other ali veli selami
 
     Programda exec çağrısına dikkat ediniz:
 
@@ -16541,13 +16543,13 @@ void exit_sys(const char *msg)
     sonunda zaten NULL adres bulunduğunu anımsayınız:
 
     argv -----> argv[0] 
-                argv[1]     ---> biz fonksiyona bu eleanın adresini geçtik
+                argv[1]     ---> biz fonksiyona bu elemanın adresini geçtik
                 argv[2]
                 ...
                 NULL
 ---------------------------------------------------------------------------------------------------------------------------*/
 
-/* sample.c */
+/* runprog.c */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -16600,13 +16602,12 @@ void exit_sys(const char *msg)
     exec fonksiyonlarının p'li versiyonları şöyle çalışmaktadır:
 
     - Eğer bu fonksiyonların birinci parametrelerinde belirtilen dosya isminde hiç "/" karakteri kullanılmamışsa bu fonksiyonlar
-    önce PATH çevre değişkeninin değerini getenv fonksiyonuyla alıp buradaki yazıyı ':' karakterlerinden parçalara ayırırlar 
+    önce PATH çevre değişkeninin değerini getenv fonksiyonuyla elde edip buradaki yazıyı ':' karakterlerinden parçalara ayırırlar 
     (parse ederler). Bu ':' karakterlerinin arasındaki yazıların dizin belirttiğini varsayarlar. Sonra exec yapılacak dosyayı 
     sırasıyla bu dizinlerde ararlar. Eğer bulurlarsa onu exec yaparlar, bulamazlarsa bu fonksiyonlar başarısız olur. Tabii bu 
     fonksiyonlar PATH çevre değişkeninde belirtilen dizinlerdeki aramayı baştan sona doğru yapmaktadır ve ilk bulduğu dizindeki 
     programı exec işlemine sokmaktadır. (Yani eğer söz konusu program dosyası birden fazla PATH dizininde varsa dosyanın ilk 
-    bulunduğu dizindeki program çalıştırılır.)PATH çevre değişkeninin değerinin aşağıdakine benzer bir biçimde bulunması
-    gerekmektedir:
+    bulunduğu dizindeki program çalıştırılır.) PATH çevre değişkeninin değeri aşağıdakine benzer bir biçimdedir:
 
     "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin"
 
@@ -16621,7 +16622,7 @@ void exit_sys(const char *msg)
 
     exec fonksiyonlarının p'li versiyonları eğer dosya isminde hiç "/" karakteri yoksa ve PATH dizinlerinde de dosyayı bulamazlarsa 
     prosesin çalışma dizinine bakmamaktadır. Yani bu durumda bu fonksiyonlar yalnızca PATH çevre değişkenindeki dizinlere 
-    bakmaktadır. Tabii PATH çevre değişkeninde o andaki prosesin çalışma dizini "." ile de belirtilebilir. Örneğin:
+    bakmaktadır. Tabii PATH çevre değişkeninde o andaki prosesin çalışma dizini "." karakteri ile de belirtilebilir. Örneğin:
 
     "/bin:/usr/bin:/:."
 
@@ -16635,7 +16636,7 @@ void exit_sys(const char *msg)
     PATH=$PATH:.
 
     Peki exec fonksiyonlarının p'li versiyonları PATH çevre değişkenini bulamazsa ne olur? POSIX standartları bu durumdaki 
-    davranışın sistemden sisteme değişebileceğini (implementation dependent) belirtmektedir. Pek çok sistem (örneğin Linux ve 
+    davranışın sistemden sisteme değişebileceğini (implementation-defined) belirtmektedir. Pek çok sistem (örneğin Linux ve 
     BSD) bu durumda sanki PATH çevre değişkeni "/bin:/usr/bin" biçimindeymiş gibi davranmaktadır.
 
     exec fonksiyonlarının p'li versiyonları (execlp ve execvp) aramayı PATH dizinlerinde sırasıyla yapmaktadır. Ancak bu 
@@ -16644,7 +16645,7 @@ void exit_sys(const char *msg)
     çıkartmaktadır ve bu durumda dosyayı "/bin/sh" (default shell) programı ile çalıştırmaktadır. Ancak exec fonksiyonlarının 
     diğer versiyonları EINVAL ve ENOEXEC errno değeri oluştuğunda bunu yapmamaktadır. Tabii bu davranışı yalnızca exec 
     fonksiyonlarının p'li versiyonları göstermektedir. exec fonksiyonlarının p'li versiyonları PATH dizinlerinin birinde 
-    dosyayı sistem fonksiyonuyla (Linux'taki sys_execve) çalıştırmaya çalıştığında EACCES errno değeri ile başarısız olurlarsa 
+    dosyayı sistem fonksiyonuyla (Linux'taki sys_execve) çalıştırmaya çalıştığında EACCES errno değeri ile başarısız olduklarında 
     dosyayı sonraki PATH dizinlerinde aramaya devam ederler. Ancak bu arama sırasında bu fonksiyonlar artık dosyayı diğer 
     PATH dizinlerinde bulamazlarsa EACCES errno değeri ile başarısız olurlar.
 
@@ -16656,7 +16657,7 @@ void exit_sys(const char *msg)
     if (pid == 0 && execlp("ls", "ls", "-l", (char *)0) == -1)
         exit_sys("execv");
 
-    Burada "ls" programı PATH çevre değişeninde belirtilen "/bin" dizininde bulunacaktır. 
+    Burada "ls" programı PATH çevre değişkeninde belirtilen "/bin" dizininde bulunacaktır. 
 ---------------------------------------------------------------------------------------------------------------------------*/
 
 #include <stdio.h>
@@ -16704,7 +16705,7 @@ void exit_sys(const char *msg)
     if (pid == 0 && execvp(argv[1], &argv[1]) == -1)
         exit_sys("execvp");
 
-    Burada argv[1] ile girilen dosya isminde hiç "/" karakteri yoksa dosya PATH eçvre değişkeni ile belirtilen dizinlerde 
+    Burada argv[1] ile girilen dosya isminde hiç "/" karakteri yoksa dosya PATH çevre değişkeni ile belirtilen dizinlerde 
     aranacaktır.
 ---------------------------------------------------------------------------------------------------------------------------*/
 
@@ -16761,14 +16762,14 @@ void exit_sys(const char *msg)
     Eskiden durum böyle değilken programın çalışma dizinine gerçek komutlarla aynı isimli komutlar yerleştirerek hileli 
     işlemler yapmaya yeltenenler olmuştur. İşte bu nedenle PATH dizinlerinin içerisinde prosesin çalışma dizini 
     yerleştirilmemektedir. Eğer durum böyle olmasaydı bazen hatalı yazılmış komutlarla istenmeden başka programlar da 
-    çalıştırılabilirdi. Örneğin dizinimizde "co"  isminde bir program olsun biz "cp" yerine yanlışlıkla "co" yazarsak bu 
+    çalıştırılabilirdi. Örneğin dizinimizde "co" isminde bir program olsun biz "cp" yerine yanlışlıkla "co" yazarsak bu 
     programı istemeden de çalıştırabiliriz.
 ---------------------------------------------------------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------------------------------------------------------
     Şimdi de daha önce yapmış olduğumuz "myshell" kabuk programına fork/exec işlemini ekleyelim. Programın bu versiyonu 
     önce "içsel (internal)" komutlara bakacak, eğer içsel komutlarda verilen komutu bulmazsa onu fork/exec ile program 
-    dosyası gibi çalıştıracaktır. Aslında bash gibi kabuk programları da böyle yapmakradır. 
+    dosyası gibi çalıştıracaktır. Aslında bash gibi kabuk programları da böyle yapmaktadır. 
 
     Biz "myshell" programımızda komut satırından aldığımız yazıyı parse edip parametrelerini zaten g_params isimli bir 
     gösterici dizisinde saklamıştık. Örneğimizde eğer komut içsel komut listesinde bulunamadıysa aşağıdaki gibi fork/exec
@@ -16936,23 +16937,25 @@ void exit_sys(const char *msg)
 
     ENOENT ("No such file or directory"): Dosya bulunamamıştır.
 
-    EACCES ("Permission denied"): Dosya bulunmuştur ancak proses dosyaya "x" hakkına sahip değildir.
+    EACCES ("Permission denied"): DDosyaya ilişkin tüm yol bileşenlerinde "x" hakkı yoktur ya da proses dosyaya "x" hakkına 
+    sahip değildir.
 
-    ENOEXEC ("Exec format erro"r): Dosya bulunmuştur. Prosesin dosyaya "x" hakkı da vardır. Ancak dosyanın formatı çalıştırmaya 
-    uygun değildir. Yani dosya çalıştırılabilir bir dosya değildir ya da dosyanın başında "shebang" yoktur.
+    ENOEXEC ("Exec format error"): Dosya bulunmuştur, prosesin dosyaya "x" hakkı da vardır. Ancak dosyanın formatı anlaşılamamıştır
+    ya da bozuktur. Tipik olarak dosya çalıştırılabilir bir dosya olmadığında ya da dosyanın başında "shebang" bulunmadığında bu 
+    hata ortaya çıkmaktadır.
 
-    EINVAL ("Invalid argument"): Dosya bulunmuştur, proses dosyaya "x" hakkına sahiptir. Ancak dosya bu sistem tarafından desteklenen 
-    "çalıştırılabilir (executable)" bir formata sahip değildir.
+    EINVAL ("Invalid argument"): Dosya bulunmuştur, proses dosyaya "x" hakkına sahiptir. Dosyanın formatı tespit edilmiştir ancak
+    sistem bu formattaki dosyaları çalıştıramamantadır. Yani bu hata "ne olduğunu biliyorum ama çalıştıramam" anlamına gelmektedir. 
 
     Yukarıda da belirttiğimiz gibi exec fonksiyonlarının p'li versiyonları (execlp ve execvp) PATH dizinlerinde tek tek dosyayı 
     aramaktadır. Ancak bu fonksiyonlar dosyayı bir dizinde bulduğunda ve onu sistem fonksiyonuyla (Linux'ta sys_execve) çalıştırmaya 
-    çalıştığında EINVAL ve ENOEXEC errno değerleri oluşursa dosyanın bir kabuk betiği (shell script) olduğundan çalıştırılamadığı 
-    sonucunu çıkartmaktadır ve bu durumda dosyayı "/bin/sh (default shell)" programı ile çalıştırmaktadır. Ancak exec fonksiyonlarının 
-    diğer versiyonları EINVAL ve ENOEXEC hatalarında bunu yapmamaktadır. Bunu yalnızca exec fonksiyonlarının p'li versiyonları 
-    yapmaktadır. exec fonksiyonlarının p'li versiyonları PATH dizinlerinin birinde dosyayı sistem fonksiyonuyla (sys_execve) 
-    çalıştırmaya çalıştığında EACCES errno değeri ile başarısız olursa dosyayı sonraki PATH dizinlerinde aramaya devam ederler. 
-    Ancak bu arama sırasında bu fonksiyonlar artık dosyayı diğer PATH dizinlerinde de bulamazlarsa EACCES errno değeri ile 
-    başarısız olmaktadır.
+    çalıştığında EINVAL ya da ENOEXEC errno değeri ile başarısızlık oluşursa dosyanın bir "kabuk betiği (shell script)" olduğundan 
+    çalıştırılamadığı sonucunu çıkartmaktadır ve bu durumda dosyayı "/bin/sh" (default shell) programı ile çalıştırmaktadır. 
+    Ancak exec fonksiyonlarının diğer versiyonları EINVAL ve ENOEXEC hatalarında bunu yapmamaktadır. Bunu yalnızca exec 
+    fonksiyonlarının p'li versiyonları yapmaktadır. exec fonksiyonlarının p'li versiyonları PATH dizinlerinin birinde dosyayı 
+    sistem fonksiyonuyla (sys_execve) çalıştırmaya çalıştıklarında EACCES errno değeri ile başarısız olursa dosyayı sonraki 
+    PATH dizinlerinde aramaya devam ederler. Ancak bu arama sırasında bu fonksiyonlar artık dosyayı diğer PATH dizinlerinde 
+    de bulamazlarsa EACCES errno değeri ile başarısız olurlar.
 
     Bu davranışın anlamı izleyen bölümlerde başka paragraflarda daha iyi anlaşılacaktır.
 ---------------------------------------------------------------------------------------------------------------------------*/
@@ -16977,7 +16980,7 @@ void exit_sys(const char *msg)
     int execle(const char *path, const char *arg0, ... /*, (char *)0, char *const envp[]*/);
     int execve(const char *path, char *const argv[], char *const envp[]);
 
-    execle fonksiyonun birinci parametresi yine çalıştırılacak dosyanın yol ifadesini almaktadır. Diğer parametreler programa 
+    execle fonksiyonunun birinci parametresi yine çalıştırılacak dosyanın yol ifadesini almaktadır. Diğer parametreler programa 
     geçirilecek komut satırı argümanlarını belirtir. Bu argüman listesinin sonu yine NULL adresle bitirilmelidir. Bu NULL adresten 
     sonra son parametre char türden bir gösterici dizisi olmalıdır. Bu gösterici dizisi çevre değişkenlerini "anahtar=değer" 
     biçiminde tutan yazıların başlangıç adreslerinden oluşmalıdır (yani environ global değişkeninde olduğu gibi). Bu fonksiyonlardaki 
@@ -17002,7 +17005,7 @@ void exit_sys(const char *msg)
         
     printf("parent continues...\n");
 
-    Burada execle fonksiyonun argümanlarına dikkat ediniz. Artık "other" programı çalıştırıldığında alt prosesin çevre 
+    Burada execle fonksiyonunun argümanlarına dikkat ediniz. Artık "other" programı çalıştırıldığında alt prosesin çevre 
     değişken listesi env gösterici dizisindeki gibi olacaktır. "sample" programını çalıştırmadan önce "other" programını da 
     derlemelisiniz. "sample" programı çalıştırıldığında ekrana şunlar basılacaktır:
 
@@ -17149,7 +17152,7 @@ int main(int argc, char *argv[])
 
 /*---------------------------------------------------------------------------------------------------------------------------
     Aşağıdaki örnekte de execl fonksiyonunun execve kullanılarak nasıl yazıldığı hakkında bir fikir verilmiştir. 
-    Burada komut satırı argümanlarının sayısı MAX_ARGS ile sınırlandırılmıştır.
+    Burada komut satırı argümanlarının sayısı MAX_ARG ile sınırlandırılmıştır.
 
     Değişken sayıda argüman alan fonksiyonların yazımını inceleyiniz.
 ---------------------------------------------------------------------------------------------------------------------------*/
@@ -17242,7 +17245,7 @@ void exit_sys(const char *msg)
     /* ... */
 
     Açım işleminin Linux'ta O_RDONLY bayrağı ile yapıldığına dikkat ediniz. (Linux O_EXEC bayrağını desteklememektedir.) 
-    Örneğimizde fexecve fonksiyonuna üst prosesin çevre dğeişken listesi geçirilmiştir.
+    Örneğimizde fexecve fonksiyonuna üst prosesin çevre değişken listesi geçirilmiştir.
 ---------------------------------------------------------------------------------------------------------------------------*/
 
 #include <stdio.h>
@@ -17320,13 +17323,13 @@ void exit_sys(const char *msg)
 
     Close-on-exec bayrağı dosya nesnesinin içerisinde tutulmamaktadır. Çünkü aynı dosya nesnesini gösteren farklı betimleyiciler 
     olabilir. Bu betimleyicilerden birinin close-on-exec bayrağı set edilmişken diğerinin set edilmemiş olabilir. Yani close-on-exec 
-    bayrağı dosya nesnesinin içerisinde değil proses kontrol blok içerisinde başka bir yerdedir.
+    bayrağı dosya nesnesinin içerisinde değil proses kontrol bloğu içerisinde başka bir yerdedir.
 
     Aşağıdaki örnekte "sample" programı execl ile "other" programını çalıştırmıştır. Ancak "other" programı "sample" programının
     açmış olduğu dosyanın betimleyici numarasını bilmediği için "sample" programı komut satırı argümanıyla bu bilgiyi "other"
     programına iletmiştir.
 
-    Aşağıdaki programı daha sonra dosyanın close-on-exec bayrağı set set ederek yeniden deneyiniz:
+    Aşağıdaki programı daha sonra dosyanın close-on-exec bayrağı set ederek yeniden deneyiniz:
 
     if ((fd = open("sample.c", O_RDONLY|O_CLOEXEC)) == -1)
         exit_sys("open");
@@ -17339,7 +17342,7 @@ void exit_sys(const char *msg)
     if (fcntl(fd, F_SETFD, fcntl(fd, F_GETFD)|FD_CLOEXEC) == -1)
         exit_sys("fcntl");
 
-    Bu durumda alt proseste dosya betimleycisi kapalı olduğu için read fonksiyonu -1 ile geri dönecek ve errno değişkeni
+    Bu durumda alt proseste dosya betimleyicisi kapalı olduğu için read fonksiyonu -1 ile geri dönecek ve errno değişkeni
     EBADF ("Bad file descriptor") ile set edilecektir. 
 
     close-on-exec bayrağı bazı işlemler sırasında işletim sistemi tarafından set ya da reset edilebilmektedir. Örneğin dup 
@@ -17447,13 +17450,154 @@ void exit_sys(const char *msg)
 
     $ a > b
 
-    İşte tipik olarak kabuk önce "a" programı için fork yapar. Ancak henüz exec yapmadan alt prosesin 1 numaralı betmleyicisini 
+    İşte tipik olarak kabuk önce "a" programı için fork yapar. Ancak henüz exec yapmadan alt prosesin 1 numaralı betimleyicisini 
     "b" dosyasını açarak ona yönlendirir. Sonra da exec uygular. 
     
     Biz bu işlemi yapan aşağıdaki gibi bir fonksiyon yazmak isteyelim:
 
     int redirect_stdout(const char *cmd);
+
+    Fonksiyon bizden tıpkı kabukta olduğu gibi '>' ile yapılan yönlendirme yazısını alacak olsun. Örneğin:
+
+    result = redirect_stdout("ls -l > test.txt");
+
+    Bizim bu fonksiyon içerisinde önce '>' karakterini bulup onun solunu ve sağını ayrıştırmamız gerekir. Sonra fork uygulayıp
+    alt proseste yönlendirmeyi yapıp exec uygulamamız gerekir. Bu işlemi aşağıdaki örnekte şöyle yaptık:
+
+    if ((pid = fork()) == -1)
+        return -1;
+
+    if (pid == 0) {
+        int fd;
+
+        if ((fd = open(pi.path, O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH)) == -1)
+            _exit(1);
+        if (dup2(fd, 1) == -1)
+            _exit(2);
+        execvp(pi.args[0], &pi.args[0]);
+        _exit(3);
+    }
+
+    Burada pi '>' karakteri ile ayrıştırma sonucunda ayrıştırılmış bilgilerin yerleştirildiği parse_info isimli bir 
+    yapı nesnesidir. parse_info yapısı şöyle tanımlanmıştır:
+
+    struct parse_info {
+        char *args[MAX_PARAM + 1];
+        char *path;
+    };
+
+    Aşağıda örneği bütünsel olarak veriyoruz. Programı şöyle test edebilirsiniz:
+
+    $ ./redirect "ls -l  > test.txt"
 ---------------------------------------------------------------------------------------------------------------------------*/
+
+/* redirect.c */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <errno.h>
+#include <sys/wait.h>
+
+#define MAX_CMD_PARSE       4096
+#define MAX_PARAM           128
+
+struct parse_info {
+    char *args[MAX_PARAM + 1];
+    char *path;
+};
+
+int redirect_stdout(char *cmd);
+void exit_sys(const char *msg);
+
+int main(int argc, char *argv[])
+{
+    if (argc != 2) {
+        fprintf(stderr, "wrong number of arguments!..\n");
+        exit(EXIT_FAILURE);
+    }
+    if (redirect_stdout(argv[1]) == -1)
+        exit_sys("Error");
+    
+    return 0;
+}
+
+int parse_redirect(char *cmd, struct parse_info *pi)
+{
+    char *str;
+    char *tok;
+    size_t i;
+
+    if ((str = strchr(cmd, '>')) == NULL || strchr(str + 1, '>'))
+        return -1;
+    *str++ = '\0';
+
+    for (i = 0, tok = strtok(cmd, " \t"); tok != NULL; tok = strtok(NULL, " \t"), ++i)
+        pi->args[i] = tok;
+
+    if (i == 0)
+        return -1;
+
+    pi->args[i] = NULL;
+
+    for (i = 0; isspace(str[i]); ++i)
+        ;
+    if (str[i] == '\0')
+        return -1;
+    pi->path = str + i;
+    for (; !isspace(str[i]) && str[i] != '\0'; ++i)
+        ;
+    str[i] = '\0';
+
+    return 0;
+}
+
+int redirect_stdout(char *cmd)
+{
+    pid_t pid;
+    char cmd_parse[MAX_CMD_PARSE + 1];
+    struct parse_info pi;
+
+    if (strlen(cmd) > MAX_CMD_PARSE) {
+        errno = EINVAL;
+        return -1;
+    }
+    strcpy(cmd_parse, cmd);
+        
+    if (parse_redirect(cmd_parse, &pi) == -1) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    if ((pid = fork()) == -1)
+        return -1;
+
+    if (pid == 0) {
+        int fd;
+
+        if ((fd = open(pi.path, O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH)) == -1)
+            _exit(1);
+        if (dup2(fd, 1) == -1)
+            _exit(2);
+        execvp(pi.args[0], &pi.args[0]);
+        _exit(3);
+    }
+
+    if (waitpid(pid, NULL, 0) == -1)
+        exit_sys("waitpid");
+
+    return 0;
+}
+
+void exit_sys(const char *msg)
+{
+    perror(msg);
+    exit(EXIT_FAILURE);
+}
 
 /*---------------------------------------------------------------------------------------------------------------------------
     exec fonksiyonları ile betik (script) dosyaları da (yani text dosyalar da) çalıştırılabilmektedir. Bu özellik tamamen 
@@ -17482,7 +17626,7 @@ void exit_sys(const char *msg)
     başarısız olur ve yine errno değeri EACCES biçiminde set edilir.
 
     Yukarıdaki gibi shebang satırı içeren bir betik dosyası exec fonksiyonlarıyla çalıştırılmak istendiğinde exec fonksiyonları 
-    betik dosyasını değil "shebang" satırında belirtilen  çalıştırılan dosyayı çalıştırmaktadır. Ancak o dosyayı çalıştırırken 
+    betik dosyasını değil "shebang" satırında belirtilen çalıştırılacak dosyayı çalıştırmaktadır. Ancak o dosyayı çalıştırırken 
     betik dosyasının yol ifadesini de o programa komut satırı argümanı olarak geçirmektedir. Örneğin "myscript" ismindeki 
     aşağıdaki dosyayı exec fonksiyonlarıyla çalıştırmak isteyelim:
 
@@ -17492,7 +17636,7 @@ void exit_sys(const char *msg)
         echo "$i"
     done
 
-    Burada dosyanın shebang satırında "/bin/bash" dosyası belirtilmektedir. İşte exec fonksiyonları aslında bu "/bib/bash" 
+    Burada dosyanın shebang satırında "/bin/bash" dosyası belirtilmektedir. İşte exec fonksiyonları aslında bu "/bin/bash" 
     dosyasını çalıştırıp "myscript" dosyasını da bu programa komut satırı argümanı olarak geçirmektedir. Yani aslında aşağıdaki 
     çalıştırmayla eşdeğer bir durum ortaya çıkmaktadır:
 
@@ -17501,7 +17645,7 @@ void exit_sys(const char *msg)
     Görüldüğü gibi bu örnekte aslında betik dosyasını exec fonksiyonları değil "/bin/bash" programı çalıştırmaktadır. exec 
     fonksiyonları bu sürece yalnızca aracılık etmektedir. 
 
-    Shebang staırında belirtilen programın çalıştırılması sırasında bu programa geçirilen komut satır argümanları şöyledir:
+    Shebang satırında belirtilen programın çalıştırılması sırasında bu programa geçirilen komut satır argümanları şöyledir:
 
     argv[0] ---> shebang'te belirtilen program dosyasına ilişkin yol ifadesi
     argv[1] ---> Eğer shebang'te çalıştırılabilen programın yanında isteğe bağlı argüman varsa o argüman 
@@ -17520,12 +17664,12 @@ void exit_sys(const char *msg)
 
     Şimdi çeşitli denemelerle argüman aktarımını anlamaya çalışalım. 
     
-    - "sample.py" isimli Python programını biz normalde şöyşe çalıştırırız.
+    - "sample.py" isimli Python programını biz normalde şöyle çalıştırırız.
 
     $ python3 sample.py
 
     "python3" isimli yorumlayıcı (ismi "python" da olabilir) çalıştıracağı programı komut satırı argümanı olarak almaktadır. 
-    Şimdi biz çalıştırma işlemini kolaylaştırmak isteyelim.Bunun için "sample.py" dosysının başına shebang satırı yerleştirmeliyiz:
+    Şimdi biz çalıştırma işlemini kolaylaştırmak isteyelim. Bunun için "sample.py" dosysının başına shebang satırı yerleştirmeliyiz:
 
     #!/usr/bin/python3
 
@@ -17536,7 +17680,7 @@ void exit_sys(const char *msg)
 
     $ chmod +x sample.py
 
-    Artık Python programını sanki bir C programıymış gibi çalıitırabiliriz:
+    Artık Python programını sanki bir C programıymış gibi çalıştırabiliriz:
 
     $ ./sample.py
     0
@@ -17558,7 +17702,7 @@ void exit_sys(const char *msg)
 
     #!/home/kaan/Study/UnixLinux-SysProg/sample ankara
 
-    Burada biz denemenim "/home/kaan/Study/UnixLinux-SysProg" dizininde yapıldığını varsayıyoruz. Siz bu denemeyi yaparken 
+    Burada biz denememizin "/home/kaan/Study/UnixLinux-SysProg" dizininde yapıldığını varsayıyoruz. Siz bu denemeyi yaparken 
     shebang satırındaki dizini kendi çalıştığınız dizinle değiştirmelisiniz. 
 
     Burada görüldüğü gibi shebang'te belirtilen programın yanında isteğe bağlı bir argüman ("ankara" argümanı) bulunmaktadır. 
@@ -17607,7 +17751,7 @@ void exit_sys(const char *msg)
 
     #!/home/kaan/Study/UnixLinux-SysProg/sample
 
-    Görüldüğü gibi burada arık shebang'te belirtilen programın yanında isteğe bağlı argüman yoktur. Şimdi exec işlemini şöyle
+    Görüldüğü gibi burada artık shebang'te belirtilen programın yanında isteğe bağlı argüman yoktur. Şimdi exec işlemini şöyle
     yapmış olalım:
 
     execl("test.txt", "test.txt", "ali", "veli", "selami", (char *)0);
@@ -17808,9 +17952,9 @@ for i in range(10):
 ---------------------------------------------------------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------------------------------------------------------
-    Linux çerkirdeklerinde exec fonksiyonları genel olarak (bazı ayrıntıları da vardır) önce shebang kontrolü yapıp sonra 
+    Linux çekirdeklerinde exec fonksiyonları genel olarak (bazı ayrıntıları da vardır) önce shebang kontrolü yapıp sonra 
     ELF dosyası kontrolünü (ve diğer bazı çalıştırılabilir dosya formatlarının kontrolünü) yapmaktadır. Ancak aslında bu 
-    sıranın da bir önemi yoktur. Çünkü ELF gibi çalıştırılabilir dosya formatlarının ilk bayt'larında "sihiri sayılar (magic
+    sıranın da bir önemi yoktur. Çünkü ELF gibi çalıştırılabilir dosya formatlarının ilk bayt'larında "sihirli sayılar (magic
     numbers)" vardır. Bu sihirli sayılarla #! shebag karakterleri zaten çalışmamaktadır. 
 
     Shebang satırında bazı şeylere de dikkat etmek gerekir. Örneğin shebang karakterlerinin hemen ilk satırın başından başlatılması 
@@ -17838,7 +17982,7 @@ for i in range(10):
     isteğe bağlı bırakılmıştı. Ancak sonra standartlarda bu davranış zorunlu tutulmuştur. Ancak POSIX standartları çalıştırılacak 
     kabuk programının ne olacağı konusunda bir belirlemede bulunmamıştır.
 
-    Yukarıdaki açıklamalarımdan çıkan bir sonuç şudur: Biz kabuk üzerinde kabuk betiğini aslında başında hiç shebang satırı 
+    Yukarıdaki açıklamalarımızdan çıkan bir sonuç şudur: Biz kabuk üzerinde kabuk betiğini aslında başında hiç shebang satırı 
     olmadan da çalıştırabiliriz. Çünkü kabuk exec fonksiyonlarının p'li versiyonlarını kullanmaktadır. Aşağıdaki gibi "x" 
     verilmiş "myscript" isminde bir Bash betik dosyası olsun:
 
@@ -17897,20 +18041,20 @@ for i in range(10):
     Eğer system fonksiyonu fork ya da wait işleminde başarısız olursa -1 değeri ile geri dönmektedir. Eğer fork yapıp exec başarısız 
     olursa sanki _exit(127) biçiminde oluşturulan ve waitpid fonksiyonu ile elde edilen değere (status) geri dönmektedir. (Yani 
     başarısız olursa geri dönüş değeri hem sonlanma bilgisini hem de çıkış kodunu içermektedir.) Diğer durumlarda (yani fork ve exec 
-    başarılı bir biçimde yapılmışsa) system fonksiyonu çalıştırdığı kabuk pogramının waitpid fonksiyonuyla elde edilen değerine 
+    başarılı bir biçimde yapılmışsa) system fonksiyonu çalıştırdığı kabuk programının waitpid fonksiyonuyla elde edilen değerine 
     (status) geri dönmektedir. (Yani başarı durumunda system fonksiyonu kabuğun status değeriyle geri dönmektedir.) Tabii kabuk 
     programları da interaktif olmayan modda çalıştırılan komutun waitpid fonksiyonu ile elde edilen status değerine geri dönerler. 
-    Bu durumda başarı durumunda aslında kabultan çalıştırılan komutun (yani programın) status değeri elde edilmektedir. Örneğin
+    Bu durumda başarı durumunda aslında kabuktan çalıştırılan komutun (yani programın) status değeri elde edilmektedir. Örneğin
     çağrı şöyle yapılmış olsun:
 
     system("ls -l");
 
     Burada system fonksiyonu fork/exec ile "/bin/sh" programını "-c" seçeneği ile çalıştırmaktadır. Tabii kabuk programı da "ls"
     programını fork/exec ile çalıştıracaktır. (Bazen kabuk programları interaktif modda eğer tek bir komut işletiliyorsa boşuna 
-    fork yapmayabilir). Burada kabuk programı aslında "ls" programının waitpid fonksiyonu ile elde edilen değeri ile (status) 
-    sonlanmaktadır. Dolayısıyla biz aslında system fonksiyonun geri dönüş değeri olarak çalıştırdığımız "ls" programının waitpid 
+    fork yapmayabilir.) Burada kabuk programı aslında "ls" programının waitpid fonksiyonu ile elde edilen değeri ile (status) 
+    sonlanmaktadır. Dolayısıyla biz aslında system fonksiyonunun geri dönüş değeri olarak çalıştırdığımız "ls" programının waitpid 
     fonksiyonu ile elde edilen (status) değerini elde etmiş oluruz. UNIX/Linux sistemlerinde genel olarak kabuk komutları (yani 
-    programları) başarı durumunda exit kod olarak 0 değerini oluşturmaktadır.
+    programları) başarı durumunda exit kodu olarak 0 değerini oluşturmaktadır.
 
     Peki system fonksiyonunun başarısını nasıl kontrol etmeliyiz? Biz fonksiyonun geri dönüş değerini -1 ve 0'dan farklılık ile test 
     edebiliriz. Örneğin:
@@ -18058,18 +18202,29 @@ int main(void)
     return 0;
 }
 
-BURAD KALDIK
-
 /*---------------------------------------------------------------------------------------------------------------------------
-    Biz şimdiye kadar dosyalar için 9 tane erişim bayrağı gördük: S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, 
-    S_IWOTH, S_IXOTH. Bu bayraklar dosyanın "rwx rwx rwx" erişim haklarını belirtmektedir. Ancak aslında dosyaların erişim hakları 
-    9 tane değil 12 tanedir. Henüz görmediğimiz üç erişim hakkına "set-user-id", "set-group-id" ve "sticky" hakları denilmektedir. 
-    Şimdi dikkatimizi bu üç erişim hakkına çevireceğiz. Bu üç erişim hakkı open fonksiyonunda ya da chmod fonksiyonunda sırasıyla 
-    S_ISUID, S_ISGID ve S_ISVTX sembolik sabitleriyle kullanılabilmektedir. 
+                                                39. Ders 01/10/2026 - Perşembe
 ---------------------------------------------------------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------------------------------------------------------
-    Komut satırında dosyanın set-user-id bayrağını set etmek için u+s seçeneği kullanılabilir. Örneğin:
+    Şimdi dosyaların henüz görmediğimiz "set-user-id", "set-group-id" ve "sticky" denilen erişim hakları üzerinde duracağız. 
+---------------------------------------------------------------------------------------------------------------------------*/
+
+/*---------------------------------------------------------------------------------------------------------------------------
+    Biz şimdiye kadar dosyalar için 9 erişim bayrağı gördük: S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, 
+    S_IWOTH, S_IXOTH. Bu bayraklar dosyanın "rwx rwx rwx" erişim haklarını belirtmektedir. Ancak aslında dosyaların erişim hakları 
+    9 tane değil 12 tanedir. Henüz görmediğimiz üç erişim hakkına "set-user-id", "set-group-id" ve "sticky" hakları denilmektedir. 
+    Şimdi dikkatimizi bu üç erişim hakkına çevireceğiz. Bu üç erişim hakkı open fonksiyonunda ya da chmod fonksiyonunda sırasıyla 
+    S_ISUID, S_ISGID ve S_ISVTX sembolik sabitleriyle kullanılabilmektedir. Bu sembolik sabitler aslında en yüksek anlamlı 
+    dördüncü octal digit'e karşılık gelmektedir:
+
+    UGS rwx rwx rwx rwx
+
+    Dolayısıyla POSIX 2008 ve sonrasında bu bayrakları yüksek anlamlı dördüncü octal digit'le de belirtebiliriz. 
+---------------------------------------------------------------------------------------------------------------------------*/
+
+/*---------------------------------------------------------------------------------------------------------------------------
+    Komut satırında dosyanın set-user-id bayrağını set etmek için chmod komutunda "u+s" seçeneği kullanılabilir. Örneğin:
 
     $ ls -l sample
     -rwxrwxrwx 1 kaan study 17176 Şub 19 11:46 sample
@@ -18077,9 +18232,8 @@ BURAD KALDIK
     $ ls -l sample
     -rwsrwxrwx 1 kaan study 17176 Şub 19 11:46 sample
 
-    Görüldüğü gibi dosyanın set-user-id bayrağı set edildiğinde "x" harfinin yerinde "s" harfi gözükmektedir. Yani eğer dosyanın 
-    hem "x" bayrağı hem de set-user-id bayrağı set edilmişse "x" hakkının bulunduğu yerde "s" harfi gözükmektedir. Ancak dosyanın 
-    yalnızca set-user-id bayrağı set edilmişse "x" hakkının bulunduğu yerde "S" harfi gözükür. Örneğin:
+    Görüldüğü gibi eğer dosyanın hem "x" bayrağı hem de set-user-id bayrağı set edilmişse "x" hakkının bulunduğu yerde "s" harfi 
+    gözükmektedir. Ancak dosyanın yalnızca set-user-id bayrağı set edilmişse "x" hakkının bulunduğu yerde "S" harfi gözükür. Örneğin:
 
     $ ls -l test.txt
     -rw-rw-rw- 1 kaan study 2087 Şub 19 10:49 test.txt
@@ -18087,38 +18241,46 @@ BURAD KALDIK
     $ ls -l test.txt
     -rwSrw-rw- 1 kaan study 2087 Şub 19 10:49 test.txt
 
-    Dosyanın set-grup-id bayrağının set edilmesi de chmod komutunda g+s ile yapılmaktadır. İşlem sonrasında yine grup bilgisinde "x"
-    hakkı yerinde "s" ya da "S" görünür. chmod komutunda +s kullanılırsa bu durumda dosyanın hem set-user-id hem de set-group-id 
+    Dosyanın set-grup-id bayrağının set edilmesi de chmod komutunda "g+s" ile yapılmaktadır. İşlem sonrasında yine grup bilgisinde 
+    "x" hakkı yerinde "s" ya da "S" görünür. chmod komutunda "+s" kullanılırsa bu durumda dosyanın hem set-user-id hem de set-group-id 
     bayrakları set edilir. Dosyanın sticky bayrağını set etmek için chmod komutunda +t kullanılmaktadır. Bu işlem yapıldığında
     görüntü olarak grup hakkında "x" varsa 'x' hakkının olduğu yerde "t", yoksa orada "T" görülmektedir.
 
-    Benzer biçimde istersek yine chmod komutunda octal digit'lerle set-user-d, set-group-id ve sticky bitlerini set edebiliriz. 
+    Yularıdaki komutlarda '+' yerine '-' karakterini getirerek reset işlemlerini yapabilirsiniz. 
+
+    Benzer biçimde istersek yine chmod komutunda octal digit'lerle set-user-id, set-group-id ve sticky bitlerini set edebiliriz. 
     Örneğin:
 
     $ chmod 4755 sample
 
-    Burada en soldaki octal digit 4 olduğu için dosyanın set-user-id bayrağı da set edilmiştir.
+    Burada en soldaki octal digit 4 olduğu için dosyanın set-user-id bayrağı da set edilmiştir. En soldaki octal digit'in birleri 
+    yukarıda da belirttiğimiz gibi şu sıradadır:
 
-    chmod fonksiyonunda yukarıda belirttiğimiz bayrakları kullanarak set-user-id, set-group-id ve stick bayraklarını set edebiliriz. 
+    set-user-id set-group-id sticky
+
+    chmod fonksiyonunda yukarıda belirttiğimiz bayrakları kullanarak set-user-id, set-group-id ve sticky bayraklarını set edebiliriz. 
     Örneğin biz "sample" programını rwsrwxrwx haline şöyle getirebiliriz:
 
     if (chmod("sample", S_IRWXU|S_IRWXG|S_IRWXO|S_ISUID) == -1)
         exit_sys("chmod");
 
-    Peki zaten var olan bir dosyaya bu özellikleri programlama yoluyla nasıl ekleyebiliriz? Bunun için önce dosyanın erişim 
-    haklarının stat, lstat ya da fstat fonksiyonuyla elde edilmesi gerekmektedir. Ondan sonra bu erişim haklarına biz S_ISUID, 
-    S_ISGID ve S_ISVTX bayraklarını OR işlemiyle ekleyebiliriz. Ancak stat fonksiyonun bize verdiği st_mode değeri dosyanın türünü de 
-    içermektedir. Gerçi chmod fonksiyonu bu ekstra bitleri dikkate almamaktadır. Ancak yine de stat yapısının st_mode elemanındaki 
-    değeri S_IFMT ile maskelemek daha uygundur. (Stevens "Advanced Programming in the UNIX Environment" kitabında böyle yapmamıştır.)
-    O halde bu işlem şöyle yapılabilir:
+    Peki zaten var olan bir dosyaya mevcut erişim haklarını bozmadan bu özellikleri programlama yoluyla nasıl ekleyebiliriz? 
+    Bunun için önce dosyanın erişim haklarının stat, lstat ya da fstat fonksiyonuyla elde edilmesi gerekmektedir. Ondan sonra 
+    bu erişim haklarına biz S_ISUID, S_ISGID ve S_ISVTX bayraklarını OR işlemiyle ekleyebiliriz. Ancak stat fonksiyonunun bize 
+    verdiği st_mode değeri dosyanın türünü de içermektedir. Gerçi chmod fonksiyonu bu ekstra bitleri dikkate almamaktadır. 
+    Ancak yine de stat yapısının st_mode elemanındaki değeri S_IFMT ile maskelemek daha uygundur. (Stevens "Advanced Programming 
+    in the UNIX Environment" kitabında böyle yapmamıştır.) O halde bu işlem şöyle yapılabilir:
 
     struct stat finfo;
 
     if (stat("sample", &finfo) == -1)
         exit_sys("stat");
 
-    if (chmod("sample", (finfo.st_mode & ~S_IFMT) | S_ISUID) == -1)        /* ~S_IMT maskelemesi yapılmasa da genel olarak bir sorun oluşmaz */
+    if (chmod("sample", (finfo.st_mode & ~S_IFMT) | S_ISUID) == -1)   
         exit_sys("chmod");
+
+    S_IFMT bayrağı erişim hakları dışındaki dosya tür bayraklarını temsil etmektedir. ~S_IFMT erişim hakları bayraklarını 
+    1 diğer bayrakları 0 hale getirmektedir. 
 ---------------------------------------------------------------------------------------------------------------------------*/
 
 #include <stdio.h>
@@ -18127,14 +18289,19 @@ BURAD KALDIK
 
 void exit_sys(const char *msg);
 
-int main(void)
+int main(int argc, char *argv[])
 {
     struct stat finfo;
 
-    if (stat("sample", &finfo) == -1)
+    if (argc != 2) {
+        fprintf(stderr, "wrong number of arguments!..\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if (stat(argv[1], &finfo) == -1)
         exit_sys("stat");
 
-    if (chmod("sample", (finfo.st_mode & ~S_IFMT) | S_ISUID) == -1)
+    if (chmod(argv[1], (finfo.st_mode & ~S_IFMT) | S_ISUID) == -1)
         exit_sys("chmod");
 
     return 0;
@@ -18152,54 +18319,90 @@ void exit_sys(const char *msg)
     için düşünülmüştür. Çalıştırılabilir dosyanın set-user-id bayrağı set edilmişse bu dosya exec yapıldığında prosesin etkin 
     kullanıcı ID'si işletim sistemi tarafından dosyanın kullanıcı ID'si olacak biçimde değiştirilmektedir. Benzer biçimde çalıştırılabilir 
     dosyanın set-group-id bayrağı set edilmişse bu dosya exec yapıldığında prosesin etkin grup ID'si dosyanın grup ID'si olarak 
-    değiştirilmektedir. Başka bir deyişle örneğin biz set-user-id bayrağı set edilmiş bir programı çalıştırdığımızda artık 
-    prosesimiz etkin kullanıcı ID'si sanki o dosyanın sahibiymiş gibi olmaktadır.
+    değiştirilmektedir.
 
-    "/bin/passwd" programı ile biz kendi parolamızı değiştirebilmekteyiz. Ancak bu program sıradan kullanıcılara yazma hakkı verilmemiş 
-    olan "/etc/passwd" ve "/etc/shadow" dosyalarında değişiklikler yapabilmektedir. İşte biz /bin/passwd programının set-user-id 
-    bayrağı set edildiği için onu çalıştırdığımızda sanki program "root" önceliğinde çalışmaktadır. Böylece program bu dosyalarda 
-    değişiklik yapabilmektedir. "/bin/passwd" programının erişim hakları şöyledir:
+    Set-user-id bayrağının kullanım gerekçesini basit bir örnekle açıklayabiliriz. Bilindiği gibi kullanıcı parolaları komut 
+    satırında "passwd" komutuyla değiştirilmektedir. Default durumda passwd komutu kullanıcının kendi parolasını değiştirmektedir. 
+    Örneğin:
 
-    -rwsr-xr-x 1 root root 68208 May 28  2020 /bin/passwd
+    $ passwd
 
-    Aşağıdaki örnekte "sample" programı "mample" programını exec yaparak çalıştırmıştır. Biz bu örnekte mample programını
-    derledikten sonra chown komutuyla sudo ile birlikte kullanıcı ID'sini ve group ID'sini root olarak değiştirdik.
-    Bu mample programı prosesin gerçek ve etkin kullanıcı ve grup ID'lerini ekrana isim olarak yazdırmaktadır. Bu deneyi önce
-    mample programının set-user-id bayrağı set edilmeden ve set edildikten sonra yineleyiniz. Aşağıda yapılanlar özetlenmiştir:
+    Burada passwd önce mevut parolayı sonra da yeni parolayı bize sormaktadır. passwd programı parolayı "/etc/shadow" dosyasına 
+    yazmaktadır. Bu dosyaya yapnızca "root" prosesler erişebilmektdir:
 
-    $ gcc -o sample sample.c
-    $ gcc -o mample mample.c
-    $ ls -l mample
-    -rwxr-xr-x 1 kaan study 17088 Şub 19 13:42 mample
+    $ ls -l /etc/passwd
+    -rw-r--r-- 1 root root 3008 Haz 11 13:33 /etc/passwd
+
+    Peki biz passwd komutunu çalıştırdığımızda kabuk önce fork sonra exec yaptığına göre bizim çalıştırdığımız "passwd" 
+    programı "/etc/shadow" dosyasına nasıl erişmektedir? İşte aslında "/bin/passwd" programının set-user-id bayrağı set 
+    edilmiştir:
+
+    $ ls -l /bin/passwd
+    -rwsr-xr-x 1 root root 64152 May 30  2024 /bin/passwd
+
+    Böylece bu dosya exec yapıldığında prosesin etkin kullanıcı id'si de set-user-id bayrağının etkisiyle "root" olmaktadır. 
+    Şimdi siz bunun bir güvenlik açığı oluşturabileceğini düşünebilirsiniz. Ancak aslında bir güvenlik açığı söz konusu 
+    değildir. Bu programın sahibi "root" kullanıcısıdır ve o isteyerek bu programın "root" etkin kullanıcı ID'siyle 
+    çalıştırılmasına olanak sağlamıştır. Herhangi bir kullanıcı zaten başkalarına ait dosyaların erişim haklarını 
+    değiştirememektedir. 
+
+    Burada bir noktaya dikkat ediniz. set-user-id ya da set-group-id bayrağı set edilmiş dosyalar exec yapılırken prosesin
+    yalnızca etkin kullanıcı ID'si ve etkin grup ID'si değiştirilmektedir. Gerçek kullanıcı ID'si ve gerçek grup ID'si 
+    değiştirilmemektedir. Biz genellikle gerçek ve etkin ID'lerin aynı değerde olduğunu ancak test işlemlerine etkin ID'lerin 
+    girdiğini belirtmiştik. İşte set-user-id ve set-group-id bayrakları set edilmiş bir program dosyası exec yapıldığında 
+    artık gerçek kullanıcı ve group ID'leriyle etkin kullanıcı ID'leri farklılaşabilmektedir. 
+
+    Aşağıdaki örnekte "sample" programı "other" programını exec yaparak çalıştırmıştır. Bu other programı prosesin gerçek 
+    ve etkin kullanıcı ve grup ID'lerini ekrana isim olarak yazdırmaktadır. Biz bu örnekte other programını derledikten 
+    sonra chown komutuyla sudo ile birlikte kullanıcı ID'sini ve group ID'sini root olarak değiştirdik. Bu deneyi önce other 
+    programının set-user-id bayrağı set edilmeden ve set edildikten sonra yineleyiniz. Aşağıda yapılanlar özetlenmiştir:
+
+    $ gcc -Wall -o sample sample.c
+    $ gcc -Wall -o other other.c
+    $ ls -l other
+    -rwxr-xr-x 1 kaan study 17088 Şub 19 13:42 other
     $ sudo chown root:root mample
-    $ ls -l mample
+    $ ls -l other
     -rwxr-xr-x 1 root root 17088 Şub 19 13:42 mample
     $ ./sample
     Real user ID: kaan
     Effective user ID: kaan
     Real group ID: study
     Effective group ID: study
-    $ sudo chmod u+s mample
-    $ ls -l mample
-    -rwsr-xr-x 1 root root 17088 Şub 19 13:42 mample
+    $ sudo chmod u+s other
+    $ ls -l other
+    -rwsr-xr-x 1 root root 17088 Şub 19 13:42 other
     $ ./sample
     Real user ID: kaan
     Effective user ID: root
     Real group ID: study
     Effective group ID: study
-    $ sudo chmod g+s mample
-    $ ls -l mample
-    -rwsr-sr-x 1 root root 17088 Şub 19 13:42 mample
+    $ sudo chmod g+s other
+    $ ls -l other
+    -rwsr-sr-x 1 root root 17088 Şub 19 13:42 other
     $ ./sample
     Real user ID: kaan
     Effective user ID: root
     Real group ID: study
     Effective group ID: root
-
+    
     Biz bir programı sudo ile root önceliğinde (etkin proses ID'si 0 olacak biçimde) çalıştırıyor olalım. Dosyanın set-user-id
     bayrağı da set edilmiş olsun. Bu durumda program çalışırken prosesin etkin kullanıcı ID'si root değil program dosyasının
     kullanıcı ID'si olacaktır. Yani set-user-id bayrağı set edilmiş olan programların sudo ile root önceliğinde çalıştırılmasının
-    bir anlamı kalmamaktadır.
+    bir anlamı kalmamaktadır. Örneğin:
+
+    $ sudo chown ali: other
+    $ ls -l other
+    -rwxr-xr-x 1 ali study 16344 Eki  1 11:48 other
+    $ sudo chmod u+s other
+    $ ls -l other
+    -rwsr-xr-x 1 ali study 16344 Eki  1 11:48 other
+    $ sudo other
+    $ sudo ./other
+    Real user ID: root
+    Effective user ID: ali
+    Real group ID: root
+    Effective group ID: root
 ---------------------------------------------------------------------------------------------------------------------------*/
 
 /* sample.c */
@@ -18233,10 +18436,11 @@ void exit_sys(const char *msg)
     exit(EXIT_FAILURE);
 }
 
-/* mample.c */
+/* other.c */
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 #include <unistd.h>
 #include <pwd.h>
 #include <grp.h>
@@ -18248,20 +18452,44 @@ int main(void)
     struct passwd *pass;
     struct group *gr;
 
-    if ((pass = getpwuid(getuid())) == NULL)
-        exit_sys("getpwuid");
+    errno = 0;
+    if ((pass = getpwuid(getuid())) == NULL) {        
+        if (errno == 0) {
+            fprintf(stderr, "invalid user ID!..\n");
+            exit(EXIT_FAILURE);
+        }
+        exit_sys("getpwuid");               
+    }
+
     printf("Real user ID: %s\n", pass->pw_name);
 
-    if ((pass = getpwuid(geteuid())) == NULL)
-        exit_sys("getpwuid");
+    errno = 0;
+    if ((pass = getpwuid(geteuid())) == NULL) {        
+        if (errno == 0) {
+            fprintf(stderr, "invalid user ID!..\n");
+            exit(EXIT_FAILURE);
+        }
+        exit_sys("getpwuid");               
+    }
     printf("Effective user ID: %s\n", pass->pw_name);
 
-    if ((gr = getgrgid(getgid())) == NULL)
-        exit_sys("getgrgid");
+    errno = 0;
+    if ((gr = getgrgid(getgid())) == NULL) {
+        if (errno == 0) {
+            fprintf(stderr, "invalid group ID!..\n");
+            exit(EXIT_FAILURE);
+        }
+        exit_sys("getgrgid");               
+    }
     printf("Real group ID: %s\n", gr->gr_name);
 
-    if ((gr = getgrgid(getegid())) == NULL)
-        exit_sys("getgrgid");
+    errno = 0;
+    if ((gr = getgrgid(getegid())) == NULL) {        if (errno == 0) {
+            fprintf(stderr, "invalid group ID!..\n");
+            exit(EXIT_FAILURE);
+        }
+        exit_sys("getgrgid");               
+    }
     printf("Effective group ID: %s\n", gr->gr_name);
 
     return 0;
@@ -18274,74 +18502,148 @@ void exit_sys(const char *msg)
 }
 
 /*---------------------------------------------------------------------------------------------------------------------------
-                                                32. Ders 25/02/2023 - Cumartesi
----------------------------------------------------------------------------------------------------------------------------*/
+    Normal olarak set-user-id ve set-group-id bayrakları çalıştırılabilen dosyalar için söz konusudur. Ancak dizinler için de 
+    set-group-id bayrağının bir anlamı vardır. Pek çok UNIX türevi sistemde (Linux da buna dahil) bir dizin'in set-group-id 
+    bayrağı set edilirse Linux o dizin içerisinde open fonksiyonuyla (zaten başka yolu yoktur) ya da mkdir fonksiyonuyla bir 
+    dosya ya da dizin yaratıldığında dosyanın ya da dizinin grup ID'sini prosesin etkin grup ID'si olarak değil, o dizin'in 
+    grup ID'si olarak set etmektedir. BSD sistemlerinde zaten default olarak bir dosya ya da dizin yaratıldığında dosyanın 
+    ya da dizin'in grup ID'si o dosyanın ya da dizinin içinde bulunduğu dizin'in grup ID'si olarak set edilmektedir. O halde 
+    Linux'ta open fonksiyonu ile bir dosya ya da dizin yaratılırken dosya ya da dizin'in grup ID'si eğer o dosya ya da 
+    dizinin içinde bulunduğu dizin'in set-group-id bayrağı set edilmemişse prosesin etkin group ID'si olarak eğer set edilmişse 
+    dizin'in grup ID'si olarak set edilmektedir. Bu durumu basit bir biçimde şöyle test edebilirsiniz:
 
-/*---------------------------------------------------------------------------------------------------------------------------
-    Normal olarak set-user ID ve set-group-d bayrakları çalıştırılabilen dosyalar için söz konusudur. Ancak dizinler için de 
-    set-group-d bayrağının bir anlamı vardır. Pek çok UNIX türevi sistemde (Linux da buna dahil) bir dizin'in set-group-id bayrağı
-    set edilirse Linux o dizin içerisinde open fonksiyonuyla (zaten başka yolu yoktur) ya da mkdir fonksiyonu ile bir dosya 
-    ya da dizin yaratıldığında dosyanın grup ID'sini prosesin etkin grup ID'si olarak değil, o dizin'in grup ID'si olarak set 
-    etmektedir. BSD sistemlerinde zaten default olarak bir dosya ya da dizin yaratıldığında dosyanın ya da dizin'in grup ID'si 
-    o dosyanın dosya ya da dizin'in içinde bulunduğu dizin'in grup ID'si olarak set edilir. O halde Linux'ta open fonksiyonu ile 
-    bir dosya ya da dizin yaratılırken dosya ya da dizin'in grup ID'si eğer o dosyanın içinde bulunduğu dizin'in set-group-id 
-    bayrağı set edilmemişse prosesin etkin group ID'si olarak eğer set edilmişse dizin'in grup ID'si olarak set edilmektedir.
+    - Önce "xxx" gibi bir isimle bir dizin yaratınız:
+
+    $ mkdir xxx
+    $ ls -ld xxx
+    drwxr-xr-x 2 kaan study 4096 Eki  1 12:37 xxx
+
+    Görüldüğü gibi dizinin kullanıcı ve group ID'si prosesin ekin kullanıcı ID'si ve group ID'si biçimindedir. Şimdi biz 
+    bu dizin içerisinde bir dosya yaratalım:
+
+    $ cd xxx
+    $ touch x.txt
+    $ ls -l x.txt
+    -rw-r--r-- 1 kaan study 0 Eki  1 12:38 x.txt
+
+    Görüldüğü gibi "x.txt" dosyasının kullanıcı ve grup ID'leri prosesin etkin kullanıcı ve group ID'si biçimindedir. 
+    Şimdi biz "xxx" dizinin group ID'sini "root" olarak değiştirelim ve dizinin set-group-id bayrağını set edelim:
+
+    $ cd ..
+    $ sudo chown :root xxx
+    $ sudo chmod g+s xxx
+    $ ls -ld xxx
+    drwxr-sr-x 2 kaan root 4096 Eki  1 12:38 xxx
+
+    Şimdi yeniden dizine geçip dosya yaratalım:
+
+    $ cd xxx
+    $ touch y.txt
+    $ ls -l x.txt y.txt
+    -rw-r--r-- 1 kaan study 0 Eki  1 12:38 x.txt
+    -rw-r--r-- 1 kaan root  0 Eki  1 12:43 y.txt
+
+    Görüldüğü gibi artık dosyanın grup ID'si prosesin etkin group ID'si olarak değil, içinde bulunduğu dizinin grup ID'si 
+    olarak set edilmiştir. 
 
     Dizinlerin set-user-id bayraklarının set edilmesi benzer bir etkiye yol açmamaktadır. (Bu durum bazı eski UNIX sistemlerinde 
     denenmiştir ancak modern sistemlerde böyle bir semantik yoktur.)
 ---------------------------------------------------------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------------------------------------------------------
-    Peki script dosyaları (shebang içeren text dosyalar) için set-user-id ve set-group-id bayrakları set edilebilir mi?
+    Peki betik dosyaları (shebang içeren text dosyalar) için set-user-id ve set-group-id bayrakları set edilebilir mi?
     Bu işlem ilk zamanlar uygulanmıştır. Ancak güvenlik açığı nedeniyle sonra uygulamadan kaldırılmıştır. Bugünkü modern 
-    UNIX/Linux sistemleri script dosyalarının set-user-id ve set-group-id bayrakları set edilmiş olsa bile onları dikkate 
+    UNIX/Linux sistemleri betik dosyalarının set-user-id ve set-group-id bayrakları set edilmiş olsa bile onları dikkate 
     almamaktadır. Buradaki güvenlik açığı ilginç bir biçimde aşağıdaki gibi oluşmaktadır:
 
-    - Script dosyasının ismi "x.txt" olsun. Eğer bu dosyanın set-user-id ve set-group-id bayrakları dikkate alınsaydı bu durumda
+    Betik dosyasının ismi "x.txt" olsun. Eğer bu dosyanın set-user-id ve set-group-id bayrakları dikkate alınsaydı bu durumda
     exec fonksiyonları bu dosyayı açıp shebang satırında bulunan programı çalıştırırken prosesin etkin kullanıcı ve/veya grup 
     ID'sini "x.txt" dosyasının kullanıcı ve/veya grup ID'si olarak set ederdi. Bu durumda da eğer birisi örneğin "y.txt" sembolik 
     bağlantı dosyası oluşturup bu dosyanın "x.txt" dosyasını göstermesini sağlarsa ve bu "y.txt" ile exec yaparsa bu durumda 
     aslında exec fonksiyonu sembolik bağlantıyı izleyecek ve "x.txt" dosyasını çalıştıracaktır. Ancak exec fonksiyonları bu 
     "x.txt" dosyasının shebang satırındaki programı çalıştırırken yine komut satırı argümanı olarak "y.txt" dosyasını kullanacaktır. 
     İşte tam bu sırada birisi bu "y.txt" dosyasının sembolik bağlantısını değiştirirse maalesef prosesin etkin kullanıcı 
-    ID'si "x.txt"nin kullanıcı ID'si olarak buradaki başka dosyayı çalıştırır. 
+    ID'si "x.txt"nin kullanıcı ID'si olacak biçimde aslında başka dosyayı çalıştırır. 
 ---------------------------------------------------------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------------------------------------------------------
     Peki dosyaların sticky bayraklarının ne işlevi vardır? Aslında sticky bayrağı tasarımda başka bir amaçla düşünülmüştür. 
-    Eski sistemlerde çalıştırılabilen dosyaların çalıştırılması sonrasında programın bellekten atılmaması gibi bir ipucu 
-    oluşturmaktadır. Ancak modern sistemlerde böyle bir etkinin bir anlamı kalmadığı için sticky bayrağı da ilk tasarlandığı 
-    zamanki işlevinden tamamen kopmuştur. Bugün sticky bayrağı değişik sistemlerde değişik amaçlarla kullanılabilmektedir. 
+    Eski sistemlerde bu bayrak çalıştırılabilen dosyaların çalıştırılması sonrasında programın bellekten atılmaması gibi bir 
+    ipucu oluşturmaktadır. Ancak modern sistemlerde böyle bir etkinin bir anlamı kalmadığı için sticky bayrağı da ilk 
+    tasarlandığı zamanki işlevinden tamamen kopmuştur. Bugün sticky bayrağı değişik sistemlerde değişik amaçlarla kullanılabilmektedir. 
     POSIX standartları eskiden sticky bayrağı üzerinde açıklama yapmıyordu. Ancak belli zamandan sonra sticky için şöyle 
-    bir işlevsellik tanımlanmıştır: Bir dizin'in sticky bayrağı set edilirse dizine prosesin yazma hakkı olsa bile dizin 
-    içerisindeki başkalarına ait (yani kullanıcı ID'si başka) olan dosyalar silinememekte ve ismi değiştirilememektedir. 
-    Bugünkü sistemlerde dizin dışında diğer dosyaların sticky bayraklarının set edilmiş olup olmamasının işlevsel bir anlamı 
-    yoktur. Örneğin Linux sistemlerinde "/tmp" dizininin sticky bayrağı set edilmiştir ve bu dizine yazma hakkı verilmiştir. 
-    Bu durumda biz bu dizinde dosya yaratabiliriz, kendi dosyamızı silebiliriz. Ancak başkalarının dosyalarını silemeyiz. 
-    "/tmp" dizininin erişim hakları şöyledir:
+    bir işlevsellik tanımlanmıştır: Bir dizin'in sticky bayrağı set edilirse ve dizinin sahibi başkaları ise dizine prosesin 
+    yazma hakkı olsa bile dizin içerisindeki başkalarına ait (yani kullanıcı ID'si başka) olan dosyalar silinememekte ve 
+    ismi değiştirilememektedir. Bugünkü sistemlerde dizin dışında diğer dosyaların sticky bayraklarının set edilmiş olup 
+    olmamasının işlevsel bir anlamı yoktur. Örneğin Linux sistemlerinde "/tmp" dizininin sticky bayrağı set edilmiştir 
+    ve bu dizine yazma hakkı verilmiştir. Bu durumda biz bu dizinde dosya yaratabiliriz, kendi dosyamızı silebiliriz. 
+    Ancak başkalarının dosyalarını silemeyiz. "/tmp" dizininin erişim hakları şöyledir:
 
     drwxrwxrwt 19 root root 65536 Şub 25 10:05 /tmp
+
+    Bu durumu Linux sistemlerinde şöyle test edebiliriz:
+
+    Önce "yyy" isimli bir dizin yaratalım, bu dizinin içine geçip orada sahibi "root" olan bir dosya yaratalım:
+
+    $ mkdir yyy
+    $ cd yyy
+    $ sudo touch x.txt
+    $ ls -l x.txt
+    -rw-r--r-- 1 root root 0 Eki  1 12:53 x.txt
+
+    Görüldüğü gibi dosyanın kullanıcı ve group ID'si sudo uygulanmasından dolayı "root" olmuştur. Şimdi burada "sudo" 
+    uygulamadan ikinci bir dosya da yaratalım:
+
+    $ touch y.txt
+    $ ls -l x.txt y.txt
+    -rw-r--r-- 1 root root  0 Eki  1 12:53 x.txt
+    -rw-r--r-- 1 kaan study 0 Eki  1 12:55 y.txt
+
+    Biz her iki dosyayı da silebiliriz. Çünkü bir dosyayı silebilmek için dosyanın sahibi olmaya, dosyaya "w" hakkına 
+    sahip olmaya gerek yoktur. Tek gereken şey dizin için "w" hakkına sahip olmaktadır. Şimdi dizinin sahipliğini 
+    değiştirelim ve sticky bayrağını set edip, herkese "w" hakkı verelim:
+
+    $ cd ..
+    $ sudo chown root:root yyy
+    $ sudo chmod 777 yyy
+    $ sudo chmod +t yyy
+    $ ls -ld yyy
+    drwxrwxrwt 2 root root 4096 Eki  1 13:05 yyy
+
+    Şimdi dizine girip "x.txt" dosyasını silmeye çalışalım:
+
+    $ rm x.txt
+    rm: yazma korumalı normal boş dosya 'x.txt' kaldırılsın mı? y
+    rm: 'x.txt' silinemedi: İşleme izin verilmedi
+
+    Görüldüğü gibi dizine yazma hakkımız olsa da dizindeki başkalarına ait dosyaları silemiyoruz. Şimdi "y.txt" dosyasını 
+    silmeye çalışalım:
+
+    $ rm y.txt
+
+    Görüldüğü gibi kendimize ait olan bu dosya silinebilmiştir. 
 ---------------------------------------------------------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------------------------------------------------------
-    Daha önceden de belirttiğimiz gibi bir prosesin "gerçek kullanıcı ID'si (real user ID)" ile "etkin kullanıcı ID'si (effective 
-    user ID)", "gerçek grup ID'si (real group ID)" ile de "etkin grup ID'si (effective group ID)" aynı olmaktadır. Ancak 
-    set-user-id ve set-group-id bayrakları set edilmiş çalıştırılabilir programlar çalıştırıldığında bu ID'ler farklı hale 
-    gelebilmektedir. Örneğin prosesimizin gerçek kullanıcı ID'si ve etkin kullanıcı ID'si "kaan" olsun. Biz set-user-id bayrağı set edilmiş 
-    "/bin/passwd" programını exec yaptığımızda prosesimizin gerçek kullanıcı ID'si "kaan" olmaya devam eder ancak etkin kullanıcı 
-    ID'si "root" olur. Dosya işlemlerinde teste her zaman etkin ID'ler sokulmaktadır.
+    Daha önceden de belirttiğimiz gibi bir prosesin "gerçek kullanıcı ID'si (real user ID)" ile "etkin kullanıcı ID'si 
+    (effective user ID)", "gerçek grup ID'si (real group ID)" ile de "etkin grup ID'si (effective group ID)" genellikle aynı 
+    olmaktadır. Ancak set-user-id ve set-group-id bayrakları set edilmiş çalıştırılabilir programlar çalıştırıldığında bu 
+    ID'ler farklı hale gelebilmektedir. Örneğin prosesimizin gerçek kullanıcı ID'si ve etkin kullanıcı ID'si "kaan" olsun. 
+    Biz set-user-id bayrağı set edilmiş "/bin/passwd" programını exec yaptığımızda prosesimizin gerçek kullanıcı ID'si "kaan" 
+    olmaya devam eder ancak etkin kullanıcı ID'si "root" olur. Dosya işlemlerinde teste her zaman etkin ID'ler sokulmaktadır.
 ---------------------------------------------------------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------------------------------------------------------
-    Gerçek kullanıcı ID'si ve gerçek grup ID'si, etkin kullanıcı ID'si ve etkin grup ID'si dışında bir de "saklı kullanıcı ID'si 
-    (saved set user ID)" ve "saklı grup ID'si (saved set group ID)" denilen iki ID daha vardır. Bir proses exec uyguladığında 
-    programın set-user-id ve set-group-id bayrakları set edilmiş olsun ya da olmasın her zaman çekirdek yeni etkin kullanıcı ID'sini 
-    ve yeni etkin grup ID'sini saklı kullanıcı ID'si ve saklı grup ID'si olarak set etmektedir. Örneğin prosesimizin gerçek kullanıcı 
-    ID'si "kaan" ve etkin kullanıcı ID'si "kaan", gerçek grup ID'si "study" ve "etkin grup ID'si "study" olsun. Şimdi biz set-user-id 
-    bayrağı set edilmiş olan "/bin/passwd" programını exec ile çalıştıralım. Arık prosesimizin gerçek kullanıcı ID'si "kaan", 
-    etkin kullanıcı ID'si "root" olacaktır. Gerçek group ID'si "study" ve etkin grup ID'si de "study" olarak kalacaktır. İşte 
-    çekirdek aynı zamanda bu yeni etkin kullanıcı ("root" ID'sini kastediyoruz) ve grup ID'sini prosesin "saklı kullanıcı ID'si
-    (saved set user ID)" ve "saklı grup ID'si" olarak da set etmektedir. O halde prosesimizin ID'leri artık şöyle olacaktır:
+    Gerçek kullanıcı ID'si ve gerçek grup ID'si, etkin kullanıcı ID'si ve etkin grup ID'si dışında prosesin bir de "saklı 
+    kullanıcı ID'si (saved set user ID)" ve "saklı grup ID'si (saved set group ID)" denilen iki ID daha vardır. Bir proses 
+    exec uyguladığında programın set-user-id ve set-group-id bayrakları set edilmiş olsun ya da olmasın her zaman çekirdek 
+    yeni etkin kullanıcı ID'sini ve yeni etkin grup ID'sini saklı kullanıcı ID'si ve saklı grup ID'si olarak set etmektedir. 
+    Örneğin prosesimizin gerçek kullanıcı ID'si "kaan" ve etkin kullanıcı ID'si "kaan", gerçek grup ID'si "study" ve etkin 
+    grup ID'si "study" olsun. Şimdi biz set-user-id bayrağı set edilmiş olan "/bin/passwd" programını exec ile çalıştıralım. 
+    Artık prosesimizin gerçek kullanıcı ID'si "kaan", etkin kullanıcı ID'si "root" olacaktır. Gerçek group ID'si "study" ve 
+    etkin grup ID'si de "study" olarak kalacaktır. İşte çekirdek aynı zamanda bu yeni etkin kullanıcı ID'sini (örneğimizdeki 
+    "root" ID'sini kastediyoruz) ve grup ID'sini prosesin "saklı kullanıcı ID'si (saved set user ID)" ve "saklı grup ID'si" 
+    olarak da set etmektedir. O halde prosesimizin ID'leri artık şöyle olacaktır:
 
     gerçek kullanıcı ID'si: kaan
     etkin kullanıcı ID'si: root
@@ -18350,9 +18652,9 @@ void exit_sys(const char *msg)
     etkin grup ID'si: study
     saklı grup ID'si: study
 
-    Bu işlem set-user ID ya da set-group-id bayrağı set edilmemiş programlar çalıştırılırken de yürütülmektedir. Örneğin prosesimizin
-    gerçek kullanıcı ID'si "kaan", etkin kullanıcı ID'si "kaan", gerçek grup ID'si "study" ve etkin grup ID'si "study" olsun. 
-    Biz de set-user-id bayrağı set edilmemiş olan bir programı exec yapmış olalım. Yeni ID'ler şöyle olacaktır:
+    Bu işlem set-user-id ya da set-group-id bayrağı set edilmemiş programlar çalıştırılırken de yürütülmektedir. Örneğin 
+    prosesimizin gerçek kullanıcı ID'si "kaan", etkin kullanıcı ID'si "kaan", gerçek grup ID'si "study" ve etkin grup ID'si 
+    "study" olsun. Biz de set-user-id bayrağı set edilmemiş olan bir programı exec yapmış olalım. Yeni ID'ler şöyle olacaktır:
 
     gerçek kullanıcı ID'si: kaan
     etkin kullanıcı ID'si: kaan
@@ -18361,8 +18663,8 @@ void exit_sys(const char *msg)
     etkin grup ID'si: study
     saklı grup ID'si: study
 
-    Tabii saklı kullanıcı ID'si ve saklı grup ID'si yine porses kontrol bloğu içerisinde (Linux'taki task_struct yapısı) 
-    saklanmaktadır. 
+    Tabii saklı kullanıcı ID'si ve saklı grup ID'si yine proses kontrol bloğu içerisinde (Linux'taki task_struct yapısı 
+    içerisinde) saklanmaktadır. 
 ---------------------------------------------------------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------------------------------------------------------
@@ -18371,11 +18673,11 @@ void exit_sys(const char *msg)
 
     #include <unistd.h>
 
-    uid_t getuid(void)
-    uid_t geteuid(void)
+    uid_t getuid(void);
+    uid_t geteuid(void);
 
-    uid_t türü <unistd.h> ve <sys/types.h> dosyaları içerisinde bir tamsayı türü olacak biçimde typedef edilmiştir. Bu fonksiyonlar
-    başarısız olamamaktadır.
+    Daha önce belirttiğimiz gibi uid_t türü <unistd.h> ve <sys/types.h> dosyaları içerisinde bir tamsayı türü olacak biçimde typedef edilmiştir. 
+    Bu fonksiyonlar başarısız olamamaktadır.
 
     O anda çalışmakta olan prosesin gerçek grup ID'si getgid POSIX fonksiyonu ile, etkin grup ID'si ise getegid POSIX fonksiyonu ile 
     elde edilebilmektedir. Fonksiyonların prototipleri şöyledir:
@@ -18385,14 +18687,18 @@ void exit_sys(const char *msg)
     gid_t getgid(void);
     gid_t getegid(void);
 
+    Daha önce de belirttiğimiz gibi gid_t türü ve <sys/types.h> dosyaları içerisinde bir tamsayı türü olacak biçimde typedef edilmiştir. 
+
     Bu fonksiyonlar da başarısız olamamaktadır.
 
-    POSIX standartlarında saklı ID'leri alan fonksiyonlar yoktur. Ancak Linux sistemlerinde bu işlemi yapacak fonksiyon bulunmaktadır.
+    POSIX standartlarında saklı ID'leri alan fonksiyonlar yoktur. Ancak Linux sistemlerinde bu işlemi yapacak fonksiyon 
+    bulunmaktadır.
 ---------------------------------------------------------------------------------------------------------------------------*/
 
-#include <stdio.h>
+##include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <errno.h>
 #include <unistd.h>
 #include <pwd.h>
 #include <grp.h>
@@ -18403,34 +18709,58 @@ int main(void)
 {
     uid_t ruid, euid;
     gid_t rgid, egid;
-    struct passwd *pass;
-    struct group *grp;
+    struct passwd *pw;
+    struct group *gr;
+
 
     ruid = getuid();
-    if ((pass = getpwuid(ruid)) == NULL)
-        exit_sys("getpwuid");
-
-    printf("Real User ID: %s (%ju)\n", pass->pw_name, (uintmax_t)ruid);
-
     euid = geteuid();
+    
+    errno = 0;
+    if ((pw = getpwuid(ruid)) == NULL) {
+        if (errno == 0) {
+            fprintf(stderr, "invalid user name!..\n");
+            exit(EXIT_FAILURE);
+        }
+        exit_sys("getpwuid");               
+    }
 
-    if ((pass = getpwuid(euid)) == NULL)
-        exit_sys("getpwuid");
+    printf("Real user ID: %jd (%s)\n", (intmax_t)ruid, pw->pw_name);
 
-    printf("Effective User ID: %s (%ju)\n", pass->pw_name, (uintmax_t)euid);
+    errno = 0;
+    if ((pw = getpwuid(euid)) == NULL) {
+        if (errno == 0) {
+            fprintf(stderr, "invalid user ID!..\n");
+            exit(EXIT_FAILURE);
+        }
+        exit_sys("getpwuid");               
+    }
+    printf("Effective user ID: %jd (%s)\n", (intmax_t)ruid, pw->pw_name);
+
+    errno = 0;
+    if ((gr = getgrgid(ruid)) == NULL) {
+        if (errno == 0) {
+            fprintf(stderr, "invalid group ID!..\n");
+            exit(EXIT_FAILURE);
+        }
+        exit_sys("getgrgid");               
+    }
 
     rgid = getgid();
-    if ((grp = getgrgid(rgid)) == NULL)
-        exit_sys("getgrgid");
-
-    printf("Real Group ID: %s (%ju)\n", grp->gr_name, (uintmax_t)rgid);
-
     egid = getegid();
 
-    if ((grp = getgrgid(egid)) == NULL)
-        exit_sys("getgrgid");
+    printf("Real group ID: %jd (%s)\n", (intmax_t)rgid, gr->gr_name);
 
-    printf("Effective Group ID: %s (%ju)\n", grp->gr_name, (uintmax_t)egid);
+    errno = 0;
+    if ((gr = getgrgid(egid)) == NULL) {
+        if (errno == 0) {
+            fprintf(stderr, "invalid group ID!..\n");
+            exit(EXIT_FAILURE);
+        }
+        exit_sys("getgrgid");               
+    }
+
+    printf("Effective group ID: %jd (%s)\n", (intmax_t)ruid, pw->pw_name);
 
     return 0;
 }
@@ -18441,6 +18771,7 @@ void exit_sys(const char *msg)
     exit(EXIT_FAILURE);
 }
 
+BURADA KALDIK
 /*---------------------------------------------------------------------------------------------------------------------------
     Prosesin kullanıcı ve grup ID'lerini set etmek için setuid, setgid, seteuid ve setegid POSIX fonksiyonları bulundurulmuştur. 
     Ancak bu fonksiyonların sematiği kişiler biraz karmaşık gelmektedir. Biz burada bu fonksiyonları tek tek açıklayacağız.
@@ -24421,6 +24752,8 @@ void exit_sys(const char *msg)
     geri dönecektir. (Tabii bu durumda programcının verdiği adres uygun olmayabilir. Bu durumda fonksiyon da başarısız olur.)
     Eğer MAP_FIXED bayrağı belirtilmişse Linux sistemlerinde birinci parametredeki adresin sayfa katlarında olma zorunluluğu 
     vardır. Ancak POSIX standartlarının son versiyonları "may require" ifadesiyle bunun zorunlu olmayabileceğini belirtmektedir.
+    MAP_FIXED ile belirtilen adreste daha önce bir haritalama yapıldıysa MAP_FIXED bayrağı o haritalamayı sessizce kaldırıp 
+    (munmap mekanizmasıyla) tahsisatı yine yapmaktadır. Bu nedenle MAP_FIXED kullanırken dikkat etmek gerekir. 
 
     Fonksiyonun son iki parametresi dosya betimleyicisi ve bir de offset içermektedir. Paylaşılan bellek alanının belli bir 
     offset'ten sonraki kısmı map edilebilmektedir. Örneğin paylaşılan bellek alanı nesnemiz 4 MB olsun. Biz bu nesnenin 1 
